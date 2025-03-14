@@ -41,7 +41,7 @@ export default function Home() {
   const [timeRange, setTimeRange] = useState(30);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [isQuilted, setIsQuilted] = useState(false);
+  const [isQuilted, setIsQuilted] = useState(true);
   const [selectedFilters, setSelectedFilters] = useState({
     crypto: true,
     indices: true,
