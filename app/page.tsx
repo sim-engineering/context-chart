@@ -119,7 +119,6 @@ export default function Home() {
     setIsQuilted(!isQuilted);
   };
 
-  console.log("Here:", fxData);
   return (
     <div className="min-h-screen flex flex-col bg-background dark">
       <Header />

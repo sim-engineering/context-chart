@@ -73,7 +73,6 @@ export default function Heatmap({
     ? Math.max(...data.map((asset) => asset.marketCap))
     : 0;
 
-  console.log(maxMarketCap);
   // Render quilted view with all assets combined
   if (isQuilted) {
     return (
@@ -170,21 +169,24 @@ export default function Heatmap({
               {assets.length} assets
             </Badge>
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {assets.map((asset) => (
               <div
                 key={asset.id}
                 className={`${getBackgroundColor(
                   asset.change
-                )} p-3 rounded-lg cursor-pointer transition-all hover:scale-105 hover:shadow-lg`}
+                )} p-2 sm:p-3 rounded-lg cursor-pointer transition-all hover:scale-105 hover:shadow-lg`}
                 onClick={() => onAssetClick(asset)}
               >
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-medium truncate" title={asset.name}>
+                <div className="flex justify-between items-start mb-1 sm:mb-2">
+                  <h4
+                    className="text-xs sm:text-sm font-medium truncate"
+                    title={asset.name}
+                  >
                     {asset.symbol}
                   </h4>
                   <span
-                    className={`text-xs font-medium ${
+                    className={`text-[10px] sm:text-xs font-medium ${
                       asset.change >= 0 ? "text-green-700" : "text-red-700"
                     }`}
                   >
@@ -193,12 +195,12 @@ export default function Heatmap({
                   </span>
                 </div>
                 <p
-                  className="text-xs text-muted-foreground truncate"
+                  className="text-[10px] sm:text-xs text-muted-foreground truncate"
                   title={asset.name}
                 >
                   {asset.name}
                 </p>
-                <p className="text-sm font-medium mt-1">
+                <p className="text-xs sm:text-sm font-medium mt-1">
                   ${asset.price.toFixed(2)}
                 </p>
               </div>
