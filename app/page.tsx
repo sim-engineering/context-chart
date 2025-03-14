@@ -260,24 +260,21 @@ export default function Home() {
                 </div>
                 <div className="my-6">
                   <div className="border-t border-gray-300"></div>
-                </div>
-                <div className="flex gap-6">
-                  {" "}
-                  {/* Adds a gap between the individual heatmap items */}
-                  <Heatmap
-                    data={comData}
-                    onAssetClick={handleAssetClick}
-                    isQuilted={isQuilted}
-                    type={"Commodities"}
-                  />
-                  <div className="border-t-4 border-gray-500 my-6"></div>
-                  <Heatmap
-                    data={fxData}
-                    onAssetClick={handleAssetClick}
-                    isQuilted={isQuilted}
-                    type={"Forex"}
-                  />
-                </div>
+                </div>{" "}
+                {/* Adds a gap between the individual heatmap items */}
+                <Heatmap
+                  data={comData}
+                  onAssetClick={handleAssetClick}
+                  isQuilted={isQuilted}
+                  type={"Commodities"}
+                />
+                <div className="border-t-4 border-gray-500 my-6"></div>
+                <Heatmap
+                  data={fxData}
+                  onAssetClick={handleAssetClick}
+                  isQuilted={isQuilted}
+                  type={"Forex"}
+                />
               </div>
             )}
           </CardContent>
