@@ -37,6 +37,35 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+const CurrencyCard = ({ currencyData }) => {
+  const { symbol, price, change } = currencyData;
+
+  const changeColor = change > 0 ? "text-green-500" : "text-red-500";
+
+  return (
+    <div className="flex items-center justify-between rounded-lg shadow-md p-2 w-40 bg-gray-800">
+      <div className="flex flex-col items-start">
+        <span className="text-xs font-semibold text-white font-mono">
+          {symbol}
+        </span>
+        <span className="text-xs text-white font-mono">
+          ${price.toFixed(2)}
+        </span>
+      </div>
+      <div className="flex flex-col items-end">
+        <span className={`text-xs font-bold ${changeColor} mt-1 font-mono`}>
+          {change.toFixed(2)}%
+        </span>
+        <span
+          className={`w-2 h-2 rounded-full ${
+            change > 0 ? "bg-green-500" : "bg-red-500"
+          }`}
+        />
+      </div>
+    </div>
+  );
+};
+
 export default function Home() {
   const [timeRange, setTimeRange] = useState(30);
   const [selectedAsset, setSelectedAsset] = useState(null);
@@ -86,17 +115,11 @@ export default function Home() {
     setOpenDialog(true);
   };
 
-  const handleFilterChange = (filter) => {
-    setSelectedFilters({
-      ...selectedFilters,
-      [filter]: !selectedFilters[filter],
-    });
-  };
-
   const toggleViewMode = () => {
     setIsQuilted(!isQuilted);
   };
 
+  console.log("Here:", fxData);
   return (
     <div className="min-h-screen flex flex-col bg-background dark">
       <Header />
@@ -130,45 +153,7 @@ export default function Home() {
                     </>
                   )}
                 </Button>
-                {/* <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full sm:w-auto">
-                      Asset Classes <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuCheckboxItem
-                      checked={selectedFilters.crypto}
-                      onCheckedChange={() => handleFilterChange("crypto")}
-                    >
-                      Cryptocurrencies
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={selectedFilters.indices}
-                      onCheckedChange={() => handleFilterChange("indices")}
-                    >
-                      Indices
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={selectedFilters.commodities}
-                      onCheckedChange={() => handleFilterChange("commodities")}
-                    >
-                      Commodities
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={selectedFilters.bonds}
-                      onCheckedChange={() => handleFilterChange("bonds")}
-                    >
-                      Bonds
-                    </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                      checked={selectedFilters.forex}
-                      onCheckedChange={() => handleFilterChange("forex")}
-                    >
-                      Forex
-                    </DropdownMenuCheckboxItem>
-                  </DropdownMenuContent>
-                </DropdownMenu> */}
+
                 <Tabs defaultValue="1d" className="w-full sm:w-auto">
                   <TabsList className="grid grid-cols-5 w-full">
                     <TabsTrigger value="1d" onClick={() => setTimeRange(1)}>
@@ -210,7 +195,26 @@ export default function Home() {
                 className="w-full"
               />
             </div>
+            <div>
+              <div className="relative my-8">
+                {/* Left Arrow */}
+                <div className="absolute left-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
+                  ◀
+                </div>
 
+                {/* Scrollable Currency List */}
+                <div className="flex gap-1 overflow-x-auto scrollbar-hide px-6">
+                  {fxData.map((fx) => (
+                    <CurrencyCard key={fx.id} currencyData={fx} />
+                  ))}
+                </div>
+
+                {/* Right Arrow */}
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
+                  ▶
+                </div>
+              </div>
+            </div>
             {isQuilted && (
               <div className="mb-4 flex items-center gap-2">
                 <p className="text-sm text-muted-foreground">
@@ -269,12 +273,6 @@ export default function Home() {
                   type={"Commodities"}
                 />
                 <div className="border-t-4 border-gray-500 my-6"></div>
-                <Heatmap
-                  data={fxData}
-                  onAssetClick={handleAssetClick}
-                  isQuilted={isQuilted}
-                  type={"Forex"}
-                />
               </div>
             )}
           </CardContent>

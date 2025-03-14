@@ -142,44 +142,7 @@ const assets = {
       name: "British Pound / US Dollar",
       marketCapMultiplier: 15,
     },
-    {
-      symbol: "USD/CHF",
-      name: "US Dollar / Swiss Franc",
-      marketCapMultiplier: 10,
-    },
-    {
-      symbol: "AUD/USD",
-      name: "Australian Dollar / US Dollar",
-      marketCapMultiplier: 8,
-    },
-    {
-      symbol: "USD/CAD",
-      name: "US Dollar / Canadian Dollar",
-      marketCapMultiplier: 8,
-    },
-    {
-      symbol: "NZD/USD",
-      name: "New Zealand Dollar / US Dollar",
-      marketCapMultiplier: 5,
-    },
-    { symbol: "EUR/GBP", name: "Euro / British Pound", marketCapMultiplier: 7 },
-    { symbol: "EUR/JPY", name: "Euro / Japanese Yen", marketCapMultiplier: 6 },
-    {
-      symbol: "GBP/JPY",
-      name: "British Pound / Japanese Yen",
-      marketCapMultiplier: 4,
-    },
-    {
-      symbol: "AUD/GBP",
-      name: "Australian Dollar / British Pound",
-      marketCapMultiplier: 3,
-    },
-    { symbol: "EUR/CHF", name: "Euro / Swiss Franc", marketCapMultiplier: 6 },
-    {
-      symbol: "GBP/CHF",
-      name: "British Pound / Swiss Franc",
-      marketCapMultiplier: 5,
-    },
+
     {
       symbol: "USD/CNY",
       name: "US Dollar / Chinese Yuan",
