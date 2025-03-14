@@ -234,28 +234,29 @@ export default function Home() {
                 </TooltipProvider>
               </div>
             )}
-
-            <div>
-              <div className="flex p-4 m-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div>
                 <Heatmap
                   data={indicesData}
                   onAssetClick={handleAssetClick}
                   isQuilted={isQuilted}
                 />
-                <div className="w-4" />
+              </div>
+              <div>
                 <Heatmap
                   data={cryptoData}
                   onAssetClick={handleAssetClick}
                   isQuilted={isQuilted}
                 />
               </div>
-              <div className="flex p-4 m-4">
+              <div className="mt-2 sm:mt-4">
                 <Heatmap
                   data={comData}
                   onAssetClick={handleAssetClick}
                   isQuilted={isQuilted}
                 />
-                <div className="w-4" />
+              </div>
+              <div className="mt-2 sm:mt-4">
                 <Heatmap
                   data={forexData}
                   onAssetClick={handleAssetClick}
