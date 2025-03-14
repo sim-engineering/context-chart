@@ -92,23 +92,3 @@ body {
     @apply bg-background text-foreground;
   }
 }
-
-/* Add to your global stylesheet or Tailwind config */
-@keyframes flashing {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.05);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.flashing {
-  animation: flashing 1s infinite ease-in-out;
-}

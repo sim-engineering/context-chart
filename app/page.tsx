@@ -50,37 +50,35 @@ export default function Home() {
     forex: true,
   });
 
-  console.log("Filters:", selectedFilters);
-  const indicesData = generateDummyData(timeRange, {
-    bonds: false,
-    commodities: false,
+  const data = generateDummyData(timeRange, selectedFilters);
+
+  const indexData = generateDummyData(timeRange, {
     crypto: false,
-    forex: false,
     indices: true,
-  });
-
-  const cryptoData = generateDummyData(timeRange, {
-    bonds: false,
     commodities: false,
-    crypto: true,
+    bonds: false,
     forex: false,
-    indices: false,
   });
-
-  const forexData = generateDummyData(timeRange, {
-    bonds: false,
-    commodities: false,
-    crypto: false,
-    forex: true,
-    indices: false,
-  });
-
   const comData = generateDummyData(timeRange, {
-    bonds: false,
-    commodities: true,
     crypto: false,
-    forex: false,
     indices: false,
+    commodities: true,
+    bonds: false,
+    forex: false,
+  });
+  const cryptoData = generateDummyData(timeRange, {
+    crypto: true,
+    indices: false,
+    commodities: false,
+    bonds: false,
+    forex: false,
+  });
+  const fxData = generateDummyData(timeRange, {
+    crypto: false,
+    indices: false,
+    commodities: false,
+    bonds: false,
+    forex: true,
   });
 
   const handleAssetClick = (asset) => {
@@ -212,6 +210,7 @@ export default function Home() {
                 className="w-full"
               />
             </div>
+
             {isQuilted && (
               <div className="mb-4 flex items-center gap-2">
                 <p className="text-sm text-muted-foreground">
@@ -234,36 +233,53 @@ export default function Home() {
                 </TooltipProvider>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-2 sm:gap-4">
-              <div>
-                <Heatmap
-                  data={indicesData}
-                  onAssetClick={handleAssetClick}
-                  isQuilted={isQuilted}
-                />
+            {!isQuilted ? (
+              <Heatmap
+                data={data}
+                onAssetClick={handleAssetClick}
+                isQuilted={isQuilted}
+              />
+            ) : (
+              <div className="sm:transform sm:scale-10">
+                <div className="flex gap-6">
+                  {" "}
+                  {/* Adds a gap between the individual heatmap items */}
+                  <Heatmap
+                    data={indexData}
+                    onAssetClick={handleAssetClick}
+                    isQuilted={isQuilted}
+                    type={"Indeces"}
+                  />
+                  <div className="border-t-4 border-gray-500 my-6"></div>
+                  <Heatmap
+                    data={cryptoData}
+                    onAssetClick={handleAssetClick}
+                    isQuilted={isQuilted}
+                    type={"Crypto"}
+                  />
+                </div>
+                <div className="my-6">
+                  <div className="border-t border-gray-300"></div>
+                </div>
+                <div className="flex gap-6">
+                  {" "}
+                  {/* Adds a gap between the individual heatmap items */}
+                  <Heatmap
+                    data={comData}
+                    onAssetClick={handleAssetClick}
+                    isQuilted={isQuilted}
+                    type={"Commodities"}
+                  />
+                  <div className="border-t-4 border-gray-500 my-6"></div>
+                  <Heatmap
+                    data={fxData}
+                    onAssetClick={handleAssetClick}
+                    isQuilted={isQuilted}
+                    type={"Forex"}
+                  />
+                </div>
               </div>
-              <div>
-                <Heatmap
-                  data={cryptoData}
-                  onAssetClick={handleAssetClick}
-                  isQuilted={isQuilted}
-                />
-              </div>
-              <div className="mt-2 sm:mt-4">
-                <Heatmap
-                  data={comData}
-                  onAssetClick={handleAssetClick}
-                  isQuilted={isQuilted}
-                />
-              </div>
-              <div className="mt-2 sm:mt-4">
-                <Heatmap
-                  data={forexData}
-                  onAssetClick={handleAssetClick}
-                  isQuilted={isQuilted}
-                />
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </main>
