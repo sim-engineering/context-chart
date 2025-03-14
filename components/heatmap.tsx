@@ -47,9 +47,10 @@ export default function Heatmap({
     // Base size calculation from market cap (1-4)
     let baseSize = Math.max(
       1,
-      Math.min(5, Math.ceil((5 * asset.marketCap) / maxMarketCap)) // Max size is now 5 instead of 4
+      Math.min(3, Math.ceil((3 * asset.marketCap) / maxMarketCap)) // Max size is now 5 instead of 4
     );
 
+    console.log("baseSize:", baseSize);
     // Apply price-based adjustments
     if (asset.price < 10) {
       // Very low-priced assets (below $10) get reduced by 2 sizes (minimum 1)
@@ -78,7 +79,7 @@ export default function Heatmap({
     return (
       <div className="space-y-4">
         <h1 className="text-lg sm:text-[15px] truncate block">{type}</h1>
-        <div className="grid grid-cols-6 gap-1 auto-rows-[20px] sm:scale-100 md:scale-20 lg:grid-cols-12 lg:gap-2 lg:auto-rows-[60px]">
+        <div className="grid grid-cols-6 gap-1 auto-rows-[20px] sm:scale-100 md:scale-20 lg:grid-cols-12 lg:gap-2 lg:auto-rows-[60px] grid-auto-flow-dense">
           {data.map((asset) => {
             const size = calculateSize(asset, maxMarketCap);
             return (
