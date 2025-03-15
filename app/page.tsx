@@ -33,30 +33,44 @@ import {
 } from "@/components/ui/tooltip";
 import { Spinner } from "@/components/ui/spinner";
 
-const CurrencyCard = ({ currencyData }: { currencyData: Asset }) => {
+type CurrencyCardProps = {
+  currencyData: Asset;
+  size: "lg" | "small";
+};
+
+const CurrencyCard = ({ currencyData, size }: CurrencyCardProps) => {
   const { symbol, price, change } = currencyData;
 
   const changeColor = change > 0 ? "text-green-500" : "text-red-500";
 
+  const sizeClasses = size === "lg" ? "w-44 p-2" : "w-36 p-1";
+  const textSize = size === "lg" ? "text-sm" : "text-xs";
+  const fontSize = size === "lg" ? "font-medium" : "font-semibold";
+
   return (
-    <div className="flex items-center justify-between rounded-lg shadow-md p-2 w-40 bg-gray-800">
+    <div
+      className={`flex items-center justify-between rounded-lg shadow-md bg-gray-800 ${sizeClasses}`}
+    >
       <div className="flex flex-col items-start">
-        <span className="text-xs font-semibold text-white font-mono">
+        <span className={`text-white ${textSize} ${fontSize} font-mono`}>
           {symbol}
         </span>
-        <span className="text-xs text-white font-mono">
+        <span className={`text-white ${textSize} font-mono`}>
           ${price.toFixed(2)}
         </span>
       </div>
       <div className="flex flex-col items-end">
-        <span className={`text-xs font-bold ${changeColor} mt-1 font-mono`}>
-          {change.toFixed(2)}%
-        </span>
-        <span
-          className={`w-2 h-2 rounded-full ${
-            change > 0 ? "bg-green-500" : "bg-red-500"
-          }`}
-        />
+        <div className="flex flex-col justify-between h-full items-end">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              change > 0 ? "bg-green-500" : "bg-red-500"
+            }`}
+          />
+          <div className="h-3"></div>
+          <span className={`${textSize} ${changeColor} font-mono`}>
+            {change.toFixed(2)}%
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -93,6 +107,26 @@ export default function Home() {
     indices: false,
     commodities: false,
   });
+
+  const [cardSize, setCardSize] = useState<"small" | "lg">("small");
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setCardSize("lg");
+      } else {
+        setCardSize("small");
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    handleResize();
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -233,36 +267,39 @@ export default function Home() {
                 className="w-full"
               />
             </div>
-            <div>
-              <div className="relative my-8">
-                <div className="absolute left-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
-                  ◀
-                </div>
 
-                <div
-                  className="flex gap-1 overflow-x-auto scrollbar-hide px-6 justify-center items-center"
-                  style={{ height: "100px" }}
-                >
-                  {/* Show loading spinner while fetching fxData */}
-                  {isLoadingData.fx ? (
-                    <div
-                      className="flex justify-center items-center"
-                      style={{ height: "100%" }}
-                    >
-                      <Spinner size="sm" />
-                    </div>
-                  ) : (
-                    fxData?.currencies.map((fx) => (
-                      <CurrencyCard key={fx.symbol} currencyData={fx} />
-                    ))
-                  )}
-                </div>
+            <div className="relative my-8">
+              <div className="absolute left-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
+                ◀
+              </div>
 
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
-                  ▶
-                </div>
+              <div
+                className="flex gap-1 overflow-x-auto scrollbar-hide px-4 md:px-6 justify-start sm:justify-center items-center"
+                style={{ height: "100px" }}
+              >
+                {isLoadingData.fx ? (
+                  <div
+                    className="flex justify-center items-center"
+                    style={{ height: "100%" }}
+                  >
+                    <Spinner size="sm" />
+                  </div>
+                ) : (
+                  fxData?.currencies.map((fx, index) => (
+                    <CurrencyCard
+                      key={fx.symbol}
+                      currencyData={fx}
+                      size={cardSize}
+                    />
+                  ))
+                )}
+              </div>
+
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
+                ▶
               </div>
             </div>
+
             {isQuilted && (
               <div className="mb-4 flex items-center gap-2">
                 <p className="text-sm text-muted-foreground">
