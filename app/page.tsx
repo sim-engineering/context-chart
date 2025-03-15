@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -18,14 +18,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Grid2X2, LayoutGrid, Info } from "lucide-react";
+import { Grid2X2, LayoutGrid, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Asset } from "@/types/types";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Heatmap from "@/components/heatmap";
@@ -36,8 +31,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Spinner } from "@/components/ui/spinner";
 
-const CurrencyCard = ({ currencyData }) => {
+const CurrencyCard = ({ currencyData }: { currencyData: Asset }) => {
   const { symbol, price, change } = currencyData;
 
   const changeColor = change > 0 ? "text-green-500" : "text-red-500";
@@ -66,11 +62,23 @@ const CurrencyCard = ({ currencyData }) => {
   );
 };
 
+function daysAgoToDate(days: number): string {
+  const today = new Date();
+  today.setDate(today.getDate() - days);
+  return today.toISOString().split("T")[0]; // Formats as YYYY-MM-DD
+}
+
 export default function Home() {
-  const [timeRange, setTimeRange] = useState(30);
-  const [selectedAsset, setSelectedAsset] = useState(null);
+  const [timeRange, setTimeRange] = useState(1);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [isQuilted, setIsQuilted] = useState(true);
+  const [data, setData] = useState<Asset[] | null>(null);
+  const [indexData, setIndexData] = useState<Asset[] | null>(null);
+  const [comData, setComData] = useState<Asset[] | null>(null);
+  const [cryptoData, setCryptoData] = useState<Asset[] | null>(null);
+  const [fxData, setFxData] = useState<Asset[] | null>(null);
+  const [loading, setLoading] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState({
     crypto: true,
     indices: true,
@@ -79,38 +87,69 @@ export default function Home() {
     forex: true,
   });
 
-  const data = generateDummyData(timeRange, selectedFilters);
-
-  const indexData = generateDummyData(timeRange, {
-    crypto: false,
-    indices: true,
-    commodities: false,
-    bonds: false,
-    forex: false,
-  });
-  const comData = generateDummyData(timeRange, {
-    crypto: false,
-    indices: false,
-    commodities: true,
-    bonds: false,
-    forex: false,
-  });
-  const cryptoData = generateDummyData(timeRange, {
-    crypto: true,
-    indices: false,
-    commodities: false,
-    bonds: false,
-    forex: false,
-  });
-  const fxData = generateDummyData(timeRange, {
+  const [isLoadingData, setIsLoadingData] = useState({
+    fx: false,
     crypto: false,
     indices: false,
     commodities: false,
-    bonds: false,
-    forex: true,
   });
 
-  const handleAssetClick = (asset) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Update loading state for specific sections
+        setIsLoadingData({
+          fx: true,
+          crypto: true,
+          indices: true,
+          commodities: true,
+        });
+
+        const results = await Promise.all([
+          [],
+          [],
+          [],
+          [],
+          fetch(`/api/forex?date=${daysAgoToDate(timeRange)}`)
+            .then((res) => res.json())
+            .then((data) => data)
+            .catch((err) => {
+              console.error("Error fetching forex data:", err);
+              return [];
+            }),
+        ]);
+
+        const [d, i, c, crypto, fx] = results as [
+          Asset[],
+          Asset[],
+          Asset[],
+          Asset[],
+          Asset[]
+        ];
+
+        setData(d);
+        setIndexData(i);
+        setComData(c);
+        setCryptoData(crypto);
+        setFxData(fx);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+        setIsLoadingData({
+          fx: false,
+          crypto: false,
+          indices: false,
+          commodities: false,
+        });
+      }
+    };
+
+    fetchData();
+  }, [timeRange, selectedFilters]);
+
+  const handleAssetClick = (asset: Asset) => {
     setSelectedAsset(asset);
     setOpenDialog(true);
   };
@@ -154,7 +193,7 @@ export default function Home() {
                 </Button>
 
                 <Tabs defaultValue="1d" className="w-full sm:w-auto">
-                  <TabsList className="grid grid-cols-5 w-full">
+                  <TabsList className="grid grid-cols-6 w-full">
                     <TabsTrigger value="1d" onClick={() => setTimeRange(1)}>
                       1D
                     </TabsTrigger>
@@ -162,13 +201,16 @@ export default function Home() {
                       7D
                     </TabsTrigger>
                     <TabsTrigger value="30d" onClick={() => setTimeRange(30)}>
-                      30D
+                      1M
                     </TabsTrigger>
                     <TabsTrigger value="90d" onClick={() => setTimeRange(90)}>
-                      90D
+                      3M
                     </TabsTrigger>
                     <TabsTrigger value="1y" onClick={() => setTimeRange(365)}>
                       1Y
+                    </TabsTrigger>
+                    <TabsTrigger value="2y" onClick={() => setTimeRange(730)}>
+                      2Y
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -177,18 +219,15 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="mb-6">
-              <div className="flex justify-between mb-2">
+              <div className="flex justify-between mb-5">
                 <span className="text-sm text-muted-foreground">
-                  Time Range: {timeRange} days
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {timeRange} days
+                  Date: {daysAgoToDate(timeRange)}
                 </span>
               </div>
               <Slider
                 value={[timeRange]}
                 min={1}
-                max={365}
+                max={730}
                 step={1}
                 onValueChange={(value) => setTimeRange(value[0])}
                 className="w-full"
@@ -196,19 +235,29 @@ export default function Home() {
             </div>
             <div>
               <div className="relative my-8">
-                {/* Left Arrow */}
                 <div className="absolute left-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
                   ◀
                 </div>
 
-                {/* Scrollable Currency List */}
-                <div className="flex gap-1 overflow-x-auto scrollbar-hide px-6">
-                  {fxData.map((fx) => (
-                    <CurrencyCard key={fx.id} currencyData={fx} />
-                  ))}
+                <div
+                  className="flex gap-1 overflow-x-auto scrollbar-hide px-6 justify-center items-center"
+                  style={{ height: "100px" }}
+                >
+                  {/* Show loading spinner while fetching fxData */}
+                  {isLoadingData.fx ? (
+                    <div
+                      className="flex justify-center items-center"
+                      style={{ height: "100%" }}
+                    >
+                      <Spinner size="sm" />
+                    </div>
+                  ) : (
+                    fxData?.currencies.map((fx) => (
+                      <CurrencyCard key={fx.symbol} currencyData={fx} />
+                    ))
+                  )}
                 </div>
 
-                {/* Right Arrow */}
                 <div className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
                   ▶
                 </div>
@@ -236,7 +285,7 @@ export default function Home() {
                 </TooltipProvider>
               </div>
             )}
-            {!isQuilted ? (
+            {/* {!isQuilted ? (
               <Heatmap
                 data={data}
                 onAssetClick={handleAssetClick}
@@ -245,13 +294,12 @@ export default function Home() {
             ) : (
               <div className="sm:transform sm:scale-10">
                 <div className="flex gap-6">
-                  {" "}
-                  {/* Adds a gap between the individual heatmap items */}
                   <Heatmap
                     data={indexData}
                     onAssetClick={handleAssetClick}
                     isQuilted={isQuilted}
                     type={"Indeces"}
+                    isLoading={isLoadingData.indices}
                   />
                   <div className="border-t-4 border-gray-500 my-6"></div>
                   <Heatmap
@@ -259,26 +307,25 @@ export default function Home() {
                     onAssetClick={handleAssetClick}
                     isQuilted={isQuilted}
                     type={"Crypto"}
+                    isLoading={isLoadingData.crypto}
                   />
                 </div>
                 <div className="my-6">
                   <div className="border-t border-gray-300"></div>
-                </div>{" "}
-                {/* Adds a gap between the individual heatmap items */}
+                </div>
                 <Heatmap
                   data={comData}
                   onAssetClick={handleAssetClick}
                   isQuilted={isQuilted}
                   type={"Commodities"}
+                  isLoading={isLoadingData.commodities}
                 />
-                <div className="border-t-4 border-gray-500 my-6"></div>
               </div>
-            )}
+            )} */}
           </CardContent>
         </Card>
       </main>
       <Footer />
-
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         {selectedAsset && (
           <DialogContent className="sm:max-w-[500px] bg-card/95 backdrop-blur-sm border-border/40">
@@ -287,7 +334,7 @@ export default function Home() {
                 {selectedAsset.name}
                 <Badge
                   variant={
-                    selectedAsset.change >= 0 ? "success" : "destructive"
+                    selectedAsset.change >= 0 ? "default" : "destructive"
                   }
                   className="ml-2"
                 >

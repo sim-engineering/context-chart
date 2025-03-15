@@ -1,23 +1,14 @@
-// Generate random number between min and max
+"use client";
+import { Asset, assetTypes } from "@/types/types";
+
 const randomNumber = (min: number, max: number) => {
   return Math.random() * (max - min) + min;
 };
 
-// Generate random price change
 const randomChange = (volatility: number) => {
   return (Math.random() - 0.5) * 2 * volatility;
 };
 
-// Asset types with their respective volatility
-const assetTypes = {
-  crypto: { volatility: 15, priceRange: [0.01, 50000] },
-  Indices: { volatility: 3, priceRange: [1000, 40000] },
-  Commodities: { volatility: 5, priceRange: [10, 2000] },
-  Bonds: { volatility: 1, priceRange: [80, 120] },
-  Forex: { volatility: 2, priceRange: [0.5, 2] },
-};
-
-// Sample assets for each type
 const assets = {
   crypto: [
     { symbol: "BTC", name: "Bitcoin", marketCapMultiplier: 100 },
@@ -41,7 +32,7 @@ const assets = {
     { symbol: "TRX", name: "Tron", marketCapMultiplier: 1 },
     { symbol: "FIL", name: "Filecoin", marketCapMultiplier: 6 },
   ],
-  Indices: [
+  indices: [
     { symbol: "SPX", name: "S&P 500", marketCapMultiplier: 200 },
     { symbol: "NDX", name: "Nasdaq 100", marketCapMultiplier: 150 },
     { symbol: "DJI", name: "Dow Jones", marketCapMultiplier: 120 },
@@ -66,7 +57,7 @@ const assets = {
     { symbol: "TA35", name: "TA-35", marketCapMultiplier: 40 },
     { symbol: "MEXBOL", name: "Mexican Stock Index", marketCapMultiplier: 35 },
   ],
-  Commodities: [
+  commodities: [
     { symbol: "GC", name: "Gold", marketCapMultiplier: 60 },
     { symbol: "SI", name: "Silver", marketCapMultiplier: 20 },
     { symbol: "CL", name: "Crude Oil", marketCapMultiplier: 50 },
@@ -88,7 +79,7 @@ const assets = {
     { symbol: "AL", name: "Aluminum", marketCapMultiplier: 8 },
     { symbol: "TIN", name: "Tin", marketCapMultiplier: 7 },
   ],
-  Bonds: [
+  bonds: [
     { symbol: "US10Y", name: "US 10 Year Treasury", marketCapMultiplier: 80 },
     { symbol: "US2Y", name: "US 2 Year Treasury", marketCapMultiplier: 60 },
     { symbol: "US30Y", name: "US 30 Year Treasury", marketCapMultiplier: 70 },
@@ -130,10 +121,12 @@ const assets = {
       marketCapMultiplier: 25,
     },
   ],
-  Forex: [
+  forex: [
     { symbol: "EUR/USD", name: "Euro / US Dollar", marketCapMultiplier: 25 },
     {
       symbol: "USD/JPY",
+      price: 0,
+      chamge: 0,
       name: "US Dollar / Japanese Yen",
       marketCapMultiplier: 20,
     },
@@ -142,7 +135,6 @@ const assets = {
       name: "British Pound / US Dollar",
       marketCapMultiplier: 15,
     },
-
     {
       symbol: "USD/CNY",
       name: "US Dollar / Chinese Yuan",
@@ -181,46 +173,55 @@ const assets = {
   ],
 };
 
-export const generateDummyData = (timeRange: number, filters: any) => {
-  const result = [];
+export const generateDummyData = async (timeRange: number, filters: any) => {
+  const result: Asset[] = [];
   let id = 1;
 
-  // Filter asset types based on user selection
   const filteredTypes = Object.keys(assetTypes).filter((type) => {
     const key = type.toLowerCase().replace(/[^a-z]/g, "");
     return filters[key];
   });
 
-  filteredTypes.forEach((type) => {
+  // const forexData = await fetchTimeseriesData(
+  //   "USD",
+  //   "2024-01-01",
+  //   new Date().toISOString().split("T")[0],
+  //   ["JPY", "EUR", "GBP", "CAN", "AUS", "CNY"]
+  // );
+
+  filteredTypes.forEach((type: string) => {
     const { volatility, priceRange } = assetTypes[type];
     const typeAssets = assets[type];
 
-    typeAssets.forEach((asset) => {
-      // Base price in the specified range
+    // if (type === "forex") {
+    //   typeAssets.length = 0;
+    //   forexData.forEach((apiAsset: any) => {
+    //     typeAssets.push({
+    //       symbol: apiAsset.symbol,
+    //       name: apiAsset.name,
+    //       marketCapMultiplier: apiAsset.marketCapMultiplier || 1,
+    //     });
+    //   });
+    // }
+
+    typeAssets.forEach((asset: Asset) => {
       const basePrice = randomNumber(priceRange[0], priceRange[1]);
 
-      // Generate change based on volatility and time range
-      // Longer time ranges have potentially larger changes
-      const timeMultiplier = Math.sqrt(timeRange / 30); // Square root to dampen the effect
+      const timeMultiplier = Math.sqrt(timeRange / 30);
       const change = randomChange(volatility * timeMultiplier);
 
-      // Calculate price based on change
       const price = basePrice * (1 + change / 100);
 
-      // Generate random historical data
       const high = basePrice * (1 + randomChange(volatility) / 100 + 0.05);
       const low = basePrice * (1 + randomChange(volatility) / 100 - 0.05);
 
-      // Generate random volume
       const volume = basePrice * randomNumber(1000000, 10000000);
 
-      // Use the marketCapMultiplier to create more realistic relative market caps
       const marketCap =
         basePrice *
         randomNumber(10000000, 100000000) *
         (asset.marketCapMultiplier || 1);
 
-      // Generate performance for different time periods
       const performance = {
         day: randomChange(volatility * 0.5),
         week: randomChange(volatility * 0.8),
@@ -239,7 +240,7 @@ export const generateDummyData = (timeRange: number, filters: any) => {
         marketCap,
         performance,
         type,
-        featured: Math.random() > 0.7, // 30% chance to be featured
+        featured: Math.random() > 0.7,
       });
     });
   });

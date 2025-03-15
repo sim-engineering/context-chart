@@ -4,7 +4,7 @@ export default function Footer() {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-4">
               <div className="h-6 w-6 border-2 border-primary flex items-center justify-center">
                 <div className="h-3 w-3 bg-primary"></div>
               </div>

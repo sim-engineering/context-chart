@@ -1,29 +1,39 @@
 "use client";
+import { Asset, PerformanceRating, assetTypes } from "@/types/types";
 
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 
-export default function Heatmap({
+interface HeatmapProps {
+  data: Asset[];
+  onAssetClick: (asset: Asset) => void;
+  isQuilted?: boolean;
+  type?: string | null;
+}
+
+const Heatmap: React.FC<HeatmapProps> = ({
   data,
   onAssetClick,
   isQuilted = false,
   type = null,
-}) {
-  const [groupedData, setGroupedData] = useState({});
+}) => {
+  const [groupedData, setGroupedData] = useState<GroupedData>({});
 
   useEffect(() => {
-    // Group data by type
-    const grouped = data.reduce((acc, item) => {
-      if (!acc[item.type]) {
-        acc[item.type] = [];
-      }
-      acc[item.type].push(item);
-      return acc;
-    }, {});
+    const grouped = data.reduce(
+      (acc: { [key: string]: Asset[] }, item: Asset) => {
+        if (!acc[item.type]) {
+          acc[item.type] = [];
+        }
+        acc[item.type].push(item);
+        return acc;
+      },
+      {}
+    );
     setGroupedData(grouped);
   }, [data]);
 
-  const getColorIntensity = (change) => {
+  const getColorIntensity = (change: number) => {
     const absChange = Math.abs(change);
     let intensity = 0;
 
@@ -37,50 +47,39 @@ export default function Heatmap({
     return intensity;
   };
 
-  const getBackgroundColor = (change) => {
-    const intensity = getColorIntensity(change);
+  const getBackgroundColor = (change: number) => {
     return change >= 0 ? `bg-teal-800` : `bg-red-700`;
   };
 
-  // Calculate the relative size for quilted view based on market cap and price
-  const calculateSize = (asset, maxMarketCap) => {
-    // Base size calculation from market cap (1-4)
+  const calculateSize = (asset: Asset, maxMarketCap: number) => {
     let baseSize = Math.max(
       1,
-      Math.min(3, Math.ceil((3 * asset.marketCap) / maxMarketCap)) // Max size is now 5 instead of 4
+      Math.min(3, Math.ceil((3 * asset.marketCap) / maxMarketCap))
     );
 
-    console.log("baseSize:", baseSize);
-    // Apply price-based adjustments
     if (asset.price < 10) {
-      // Very low-priced assets (below $10) get reduced by 2 sizes (minimum 1)
       baseSize = Math.max(1, baseSize - 2);
     } else if (asset.price < 100) {
-      // Low-priced assets (below $100) get reduced by 1 size (minimum 1)
       baseSize = Math.max(1, baseSize - 1);
     } else if (asset.price < 500) {
-      // Medium-priced assets (between $100 and $500) get a slight reduction (but not too much)
-      baseSize = Math.max(1, baseSize); // No change, still keeps the size from the base calculation
+      baseSize = Math.max(1, baseSize);
     } else if (asset.price < 1000) {
-      // New price range, for assets between $500 and $1000
-      baseSize = Math.min(5, baseSize + 1); // Add 1 size, but ensure it doesn't exceed the maximum size
+      baseSize = Math.min(5, baseSize + 1);
     }
 
     return baseSize;
   };
 
-  // Find max market cap across all assets for the quilted view
   const maxMarketCap = isQuilted
-    ? Math.max(...data.map((asset) => asset.marketCap))
+    ? Math.max(...data.map((asset: Asset) => asset.marketCap))
     : 0;
 
-  // Render quilted view with all assets combined
   if (isQuilted) {
     return (
       <div className="space-y-4">
         <h1 className="text-lg sm:text-[15px] truncate block">{type}</h1>
         <div className="grid grid-cols-6 gap-1 auto-rows-[20px] sm:scale-100 md:scale-20 lg:grid-cols-12 lg:gap-2 lg:auto-rows-[60px] grid-auto-flow-dense">
-          {data.map((asset) => {
+          {data.map((asset: Asset) => {
             const size = calculateSize(asset, maxMarketCap);
             return (
               <div
@@ -159,7 +158,10 @@ export default function Heatmap({
     );
   }
 
-  // Regular grid view grouped by asset type
+  type GroupedData = {
+    [type: string]: Asset[];
+  };
+
   return (
     <div className="space-y-6">
       {Object.entries(groupedData).map(([type, assets]) => (
@@ -211,4 +213,6 @@ export default function Heatmap({
       ))}
     </div>
   );
-}
+};
+
+export default Heatmap;
