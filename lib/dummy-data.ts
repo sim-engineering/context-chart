@@ -177,11 +177,6 @@ export const generateDummyData = async (timeRange: number, filters: any) => {
   const result: Asset[] = [];
   let id = 1;
 
-  const filteredTypes = Object.keys(assetTypes).filter((type) => {
-    const key = type.toLowerCase().replace(/[^a-z]/g, "");
-    return filters[key];
-  });
-
   // const forexData = await fetchTimeseriesData(
   //   "USD",
   //   "2024-01-01",

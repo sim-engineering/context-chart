@@ -152,6 +152,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background dark">
+      <link rel="icon" href="/favicon.ico" sizes="any" />
+
       <Header />
       <main className="flex-1 container mx-auto px-4 py-6">
         <Card className="border-border/40 bg-card/30 backdrop-blur-sm">
