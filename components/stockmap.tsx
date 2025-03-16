@@ -93,7 +93,6 @@ const Stockmap: React.FC<HeatmapProps> = ({
   }
 
   const getChangeField = (asset: Asset, change: string) => {
-    console.log(asset, change);
     if (change === "1d") return asset.change_1d;
     if (change === "7d") return asset.change_7d;
     if (change === "1m") return asset.change_1m;

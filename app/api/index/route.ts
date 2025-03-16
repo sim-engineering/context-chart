@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   try {
     console.log("Fetching distinct asset symbols from Supabase...");
     const { data: symbolsData, error: symbolsError } = await supabase
-      .from("crypto")
+      .from("index")
       .select("symbol, count()");
 
     if (symbolsError) throw symbolsError;
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     const assetPromises = symbolsData.map(
       async ({ symbol }: { symbol: string }) => {
         const { data, error } = await supabase
-          .from("crypto")
+          .from("index")
           .select("*")
           .eq("symbol", symbol)
           .gte("date", formattedStartDate)
@@ -84,7 +84,6 @@ const transformAssetData = (data: any[]) => {
       currencies: {
         symbol: string;
         close: number;
-        volume: number;
         change?: number | null;
         change_1d: number | null;
         change_7d: number | null;
@@ -102,21 +101,20 @@ const transformAssetData = (data: any[]) => {
       date,
       symbol,
       close,
-      volume,
       change_1d,
       change_7d,
       change_1m,
       change_3m,
       change_1y,
     }) => {
-      if (!result[date]) {
-        result[date] = { currencies: [] };
+      const formattedDate = date.split("T")[0];
+      if (!result[formattedDate]) {
+        result[formattedDate] = { currencies: [] };
       }
 
-      result[date].currencies.push({
+      result[formattedDate].currencies.push({
         symbol: symbol.replace("USDT", ""),
         close,
-        volume,
         change_1d,
         change_7d,
         change_1m,

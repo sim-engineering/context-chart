@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   try {
     console.log("Fetching distinct asset symbols from Supabase...");
     const { data: symbolsData, error: symbolsError } = await supabase
-      .from("assets")
+      .from("commodity")
       .select("symbol, count()");
 
     if (symbolsError) throw symbolsError;
@@ -30,11 +30,11 @@ export async function GET(request: Request) {
     const assetPromises = symbolsData.map(
       async ({ symbol }: { symbol: string }) => {
         const { data, error } = await supabase
-          .from("assets")
+          .from("commodity")
           .select("*")
           .eq("symbol", symbol)
-          .gte("price_date", formattedStartDate)
-          .lte("price_date", formattedEndDate);
+          .gte("date", formattedStartDate)
+          .lte("date", formattedEndDate);
         if (error) throw error;
         return data;
       }
@@ -84,47 +84,44 @@ const transformAssetData = (data: any[]) => {
       currencies: {
         symbol: string;
         price: number;
-        volume: number;
-        name: string;
-        change?: number | null;
+        change_1d: number | null;
+        change_7d: number | null;
+        change_1m: number | null;
+        change_3m: number | null;
+        change_1y: number | null;
       }[];
     }
   > = {};
 
-  const priceHistory: Record<string, number> = {};
+  data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  data.sort(
-    (a, b) =>
-      new Date(a.price_date).getTime() - new Date(b.price_date).getTime()
-  );
-
-  console.log(data);
-
-  data.forEach(({ price_date, symbol, price, volume, name }) => {
-    const formattedDate = price_date.split("T")[0];
-
-    if (!result[formattedDate]) {
-      result[formattedDate] = { currencies: [] };
-    }
-
-    let change: number | null | undefined = undefined;
-
-    if (priceHistory[symbol] !== undefined) {
-      change = ((price - priceHistory[symbol]) / priceHistory[symbol]) * 100;
-    } else {
-      change = 0;
-    }
-
-    priceHistory[symbol] = price;
-
-    result[formattedDate].currencies.push({
+  data.forEach(
+    ({
+      date,
       symbol,
       price,
-      volume,
-      name,
-      change,
-    });
-  });
+      change_1d,
+      change_7d,
+      change_1m,
+      change_3m,
+      change_1y,
+    }) => {
+      const formattedDate = date.split("T")[0];
+      if (!result[formattedDate]) {
+        result[formattedDate] = { currencies: [] };
+      }
+
+      result[formattedDate].currencies.push({
+        symbol: symbol.replace("USDT", ""),
+        price,
+        change_1d,
+        change_7d,
+        change_1m,
+        change_3m,
+        change_1y,
+      });
+    }
+  );
 
   return result;
 };
