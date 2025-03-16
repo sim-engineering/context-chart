@@ -9,7 +9,13 @@ export type Asset = {
   symbol: string;
   name: string;
   price: number;
-  change: number;
+  change?: number;
+  change_1d?: number;
+  change_7d?: number;
+  change_1m?: number;
+  change_3m?: number;
+  change_1y?: number;
+  close: number;
   high: number;
   low: number;
   volume: number;

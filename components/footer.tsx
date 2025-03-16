@@ -8,7 +8,7 @@ export default function Footer() {
               <div className="h-6 w-6 border-2 border-primary flex items-center justify-center">
                 <div className="h-3 w-3 bg-primary"></div>
               </div>
-              <h1 className="text-xl font-bold">ContextChart</h1>
+              <h1 className="text-xl font-bold">ContextCharts</h1>
             </div>
             <p className="text-sm text-muted-foreground">
               Visualize market performance across different asset classes with

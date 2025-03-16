@@ -11,7 +11,7 @@ interface HeatmapProps {
   changeDays: string;
 }
 
-const Heatmap: React.FC<HeatmapProps> = ({
+const Stockmap: React.FC<HeatmapProps> = ({
   onAssetClick,
   type = null,
   date = null,
@@ -24,7 +24,7 @@ const Heatmap: React.FC<HeatmapProps> = ({
     setLoading(true);
 
     const fetchData = () => {
-      fetch(`/api/crypto?date=${date}`)
+      fetch(`/api/stocks?date=${date}`)
         .then((res) => {
           if (!res.ok) {
             setData([]);
@@ -53,8 +53,8 @@ const Heatmap: React.FC<HeatmapProps> = ({
     );
   }
 
-  const getBackgroundColor = (change: number) => {
-    return change >= 0 ? `bg-teal-800` : `bg-red-700`;
+  const getBackgroundColor = (change_1d: number) => {
+    return change_1d >= 0 ? `bg-teal-800` : `bg-red-700`;
   };
 
   const calculateSize = (asset: Asset, maxVolume: number) => {
@@ -67,13 +67,13 @@ const Heatmap: React.FC<HeatmapProps> = ({
       Math.min(3, Math.ceil((3 * asset.volume) / maxVolume))
     );
 
-    if (asset.close < 10) {
+    if (asset.price < 10) {
       baseSize = Math.max(1, baseSize - 2);
-    } else if (asset.close < 100) {
+    } else if (asset.price < 100) {
       baseSize = Math.max(1, baseSize - 1);
-    } else if (asset.close < 500) {
+    } else if (asset.price < 500) {
       baseSize = Math.max(1, baseSize);
-    } else if (asset.close < 1000) {
+    } else if (asset.price < 1000) {
       baseSize = Math.min(5, baseSize + 1);
     }
 
@@ -176,9 +176,9 @@ const Heatmap: React.FC<HeatmapProps> = ({
                     } font-medium ${size === 1 ? "mt-0" : "mt-1"}`}
                   >
                     $
-                    {asset.close < 1
-                      ? asset.close.toFixed(1)
-                      : asset.close.toFixed(size === 1 ? 0 : 2)}
+                    {asset.price < 1
+                      ? asset.price.toFixed(1)
+                      : asset.price.toFixed(size === 1 ? 0 : 2)}
                   </p>
                   {size && (
                     <p className="text-xs sm:text-[10px] text-muted-foreground mt-1">
@@ -201,4 +201,4 @@ const Heatmap: React.FC<HeatmapProps> = ({
   );
 };
 
-export default Heatmap;
+export default Stockmap;

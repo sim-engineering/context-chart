@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -23,6 +23,7 @@ import { Asset } from "@/types/types";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Heatmap from "@/components/heatmap";
+import Stockmap from "@/components/stockmap";
 import {
   Tooltip,
   TooltipContent,
@@ -44,6 +45,8 @@ function daysAgoToDate(days: number): string {
 
 export default function Home() {
   const [timeRange, setTimeRange] = useState(1);
+  const [change, setChange] = useState("1d");
+  const [debouncedTimeRange, setDebouncedTimeRange] = useState(timeRange);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
 
@@ -51,6 +54,18 @@ export default function Home() {
     setSelectedAsset(asset);
     setOpenDialog(true);
   };
+
+  const handleSliderChange = useCallback((value: number[]) => {
+    setDebouncedTimeRange(value[0]);
+  }, []);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setTimeRange(debouncedTimeRange);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [debouncedTimeRange]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background dark">
@@ -72,23 +87,23 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Tabs defaultValue="1d" className="w-full sm:w-auto">
                   <TabsList className="grid grid-cols-6 w-full">
-                    <TabsTrigger value="1d" onClick={() => setTimeRange(1)}>
+                    <TabsTrigger disabled value="15m">
+                      15min
+                    </TabsTrigger>
+                    <TabsTrigger value="1d" onClick={() => setChange("1d")}>
                       1D
                     </TabsTrigger>
-                    <TabsTrigger value="7d" onClick={() => setTimeRange(7)}>
+                    <TabsTrigger value="7d" onClick={() => setChange("7d")}>
                       7D
                     </TabsTrigger>
-                    <TabsTrigger value="30d" onClick={() => setTimeRange(30)}>
+                    <TabsTrigger value="1m" onClick={() => setChange("1m")}>
                       1M
                     </TabsTrigger>
-                    <TabsTrigger value="90d" onClick={() => setTimeRange(90)}>
+                    <TabsTrigger value="3m" onClick={() => setChange("3m")}>
                       3M
                     </TabsTrigger>
-                    <TabsTrigger value="1y" onClick={() => setTimeRange(365)}>
+                    <TabsTrigger value="1y" onClick={() => setChange("1y")}>
                       1Y
-                    </TabsTrigger>
-                    <TabsTrigger value="2y" onClick={() => setTimeRange(730)}>
-                      2Y
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -103,11 +118,11 @@ export default function Home() {
                 </span>
               </div>
               <Slider
-                value={[timeRange]}
+                value={[debouncedTimeRange]}
                 min={2}
-                max={730}
+                max={365}
                 step={1}
-                onValueChange={(value) => setTimeRange(value[0])}
+                onValueChange={handleSliderChange}
                 className="w-full"
               />
             </div>
@@ -139,15 +154,23 @@ export default function Home() {
 
             <div className="sm:transform sm:scale-10">
               <div className="flex gap-6">
-                {" "}
-                {/* Adds a gap between the individual heatmap items */}
                 <Heatmap
                   onAssetClick={handleAssetClick}
-                  type={"Indeces"}
+                  type={"Crypto"}
                   date={daysAgoToDate(timeRange)}
+                  changeDays={change}
                 />
+
                 <div className="border-t-4 border-gray-500 my-6"></div>
-                <div></div>
+              </div>
+              <div>
+                {" "}
+                <Stockmap
+                  onAssetClick={handleAssetClick}
+                  type={"Stocks"}
+                  date={daysAgoToDate(timeRange)}
+                  changeDays={change}
+                />
               </div>
             </div>
           </CardContent>
