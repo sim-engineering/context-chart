@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, memo, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -18,116 +18,149 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Grid2X2, LayoutGrid, Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Info, Calendar, TrendingUp, Loader2 } from "lucide-react";
+import { Asset } from "@/types/types";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Heatmap from "@/components/heatmap";
-import { generateDummyData } from "@/lib/dummy-data";
+import Stockmap from "@/components/stockmap";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import CurrencyBar from "@/components/currencies";
+import IndecesBar from "@/components/indexes";
+import Comap from "@/components/comap";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const CurrencyCard = ({ currencyData }) => {
-  const { symbol, price, change } = currencyData;
+// Flexible date calculation with optional weekend adjustment
+function daysAgoToDate(days, adjustWeekends = true) {
+  const today = new Date();
+  today.setDate(today.getDate() - days - 1);
 
-  const changeColor = change > 0 ? "text-green-500" : "text-red-500";
+  if (adjustWeekends) {
+    const dayOfWeek = today.getDay();
+    if (dayOfWeek === 6) today.setDate(today.getDate() - 1); // Saturday
+    if (dayOfWeek === 0) today.setDate(today.getDate() - 2); // Sunday
+  }
 
-  return (
-    <div className="flex items-center justify-between rounded-lg shadow-md p-2 w-40 bg-gray-800">
-      <div className="flex flex-col items-start">
-        <span className="text-xs font-semibold text-white font-mono">
-          {symbol}
-        </span>
-        <span className="text-xs text-white font-mono">
-          ${price.toFixed(2)}
-        </span>
-      </div>
-      <div className="flex flex-col items-end">
-        <span className={`text-xs font-bold ${changeColor} mt-1 font-mono`}>
-          {change.toFixed(2)}%
-        </span>
-        <span
-          className={`w-2 h-2 rounded-full ${
-            change > 0 ? "bg-green-500" : "bg-red-500"
-          }`}
-        />
-      </div>
+  return today.toISOString().split("T")[0];
+}
+
+// Format date to be more readable
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+// Format large numbers with K, M, B suffixes
+function formatCurrency(value) {
+  if (value >= 1000000000) return `$${(value / 1000000000).toFixed(2)}B`;
+  if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
+  if (value >= 1000) return `$${(value / 1000).toFixed(2)}K`;
+  return `$${value.toFixed(2)}`;
+}
+
+// Memoized components to prevent unnecessary re-renders
+const MemoizedHeatmap = memo(Heatmap);
+const MemoizedStockmap = memo(Stockmap);
+const MemoizedComap = memo(Comap);
+const MemoizedCurrencyBar = memo(CurrencyBar);
+const MemoizedIndecesBar = memo(IndecesBar);
+
+// Component for displaying loading spinner that takes full width and height
+const LoadingSpinner = () => (
+  <div className="w-full h-full min-h-[600px] flex items-center justify-center">
+    <div className="flex flex-col items-center gap-4">
+      <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <p className="text-muted-foreground">Loading market data...</p>
     </div>
-  );
-};
+  </div>
+);
 
 export default function Home() {
-  const [timeRange, setTimeRange] = useState(30);
+  const [timeRange, setTimeRange] = useState(1);
+  const [change, setChange] = useState("1d");
+  const [debouncedTimeRange, setDebouncedTimeRange] = useState(timeRange);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [isQuilted, setIsQuilted] = useState(true);
-  const [selectedFilters, setSelectedFilters] = useState({
-    crypto: true,
-    indices: true,
-    commodities: true,
-    bonds: true,
-    forex: true,
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [view, setView] = useState("all"); // New state for view toggle
 
-  const data = generateDummyData(timeRange, selectedFilters);
+  // Calculate dates only when dependencies change
+  const currentDate = useMemo(
+    () => daysAgoToDate(debouncedTimeRange, true),
+    [debouncedTimeRange]
+  );
 
-  const indexData = generateDummyData(timeRange, {
-    crypto: false,
-    indices: true,
-    commodities: false,
-    bonds: false,
-    forex: false,
-  });
-  const comData = generateDummyData(timeRange, {
-    crypto: false,
-    indices: false,
-    commodities: true,
-    bonds: false,
-    forex: false,
-  });
-  const cryptoData = generateDummyData(timeRange, {
-    crypto: true,
-    indices: false,
-    commodities: false,
-    bonds: false,
-    forex: false,
-  });
-  const fxData = generateDummyData(timeRange, {
-    crypto: false,
-    indices: false,
-    commodities: false,
-    bonds: false,
-    forex: true,
-  });
+  const cryptoDate = useMemo(
+    () => daysAgoToDate(debouncedTimeRange, false),
+    [debouncedTimeRange]
+  );
 
-  const handleAssetClick = (asset) => {
+  const handleAssetClick = useCallback((asset) => {
     setSelectedAsset(asset);
     setOpenDialog(true);
-  };
+  }, []);
 
-  const toggleViewMode = () => {
-    setIsQuilted(!isQuilted);
-  };
+  const handleSliderChange = useCallback((value) => {
+    setDebouncedTimeRange(value[0]);
+  }, []);
+
+  const handleChangeTab = useCallback((value) => {
+    setChange(value);
+  }, []);
+
+  // Debounce the timeRange update
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setTimeRange(debouncedTimeRange);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [debouncedTimeRange]);
+
+  // Set loading state when important parameters change
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 800); // Increased time for demo purposes
+    return () => clearTimeout(timer);
+  }, [timeRange, change, view]);
+
+  const tabOptions = [
+    { value: "15m", label: "15min", disabled: true },
+    { value: "1d", label: "1D" },
+    { value: "7d", label: "7D" },
+    { value: "1m", label: "1M" },
+    { value: "3m", label: "3M" },
+    { value: "1y", label: "1Y" },
+  ];
+
+  const viewOptions = [
+    { value: "all", label: "All Assets" },
+    { value: "crypto", label: "Crypto" },
+    { value: "stocks", label: "Stocks" },
+    { value: "commodities", label: "Commodities" },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-background dark">
+      <link rel="icon" href="/favicon.ico" sizes="any" />
+
       <Header />
       <main className="flex-1 container mx-auto px-4 py-6">
-        <Card className="border-border/40 bg-card/30 backdrop-blur-sm">
+        <Card className="border-border/40 bg-card/30 backdrop-blur-sm shadow-lg">
           <CardHeader>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <CardTitle className="text-2xl font-bold">
+                <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                  <TrendingUp className="h-6 w-6" />
                   Market Heatmap
                 </CardTitle>
                 <CardDescription>
@@ -135,143 +168,128 @@ export default function Home() {
                 </CardDescription>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto flex items-center gap-2"
-                  onClick={toggleViewMode}
+                <Tabs
+                  defaultValue="1d"
+                  value={change}
+                  onValueChange={handleChangeTab}
+                  className="w-full sm:w-auto"
                 >
-                  {isQuilted ? (
-                    <>
-                      <Grid2X2 className="h-4 w-4" />
-                      <span>Grid View</span>
-                    </>
-                  ) : (
-                    <>
-                      <LayoutGrid className="h-4 w-4" />
-                      <span>Quilted View</span>
-                    </>
-                  )}
-                </Button>
-
-                <Tabs defaultValue="1d" className="w-full sm:w-auto">
-                  <TabsList className="grid grid-cols-5 w-full">
-                    <TabsTrigger value="1d" onClick={() => setTimeRange(1)}>
-                      1D
-                    </TabsTrigger>
-                    <TabsTrigger value="7d" onClick={() => setTimeRange(7)}>
-                      7D
-                    </TabsTrigger>
-                    <TabsTrigger value="30d" onClick={() => setTimeRange(30)}>
-                      30D
-                    </TabsTrigger>
-                    <TabsTrigger value="90d" onClick={() => setTimeRange(90)}>
-                      90D
-                    </TabsTrigger>
-                    <TabsTrigger value="1y" onClick={() => setTimeRange(365)}>
-                      1Y
-                    </TabsTrigger>
+                  <TabsList className="grid grid-cols-6 w-full">
+                    {tabOptions.map((tab) => (
+                      <TabsTrigger
+                        key={tab.value}
+                        value={tab.value}
+                        disabled={tab.disabled}
+                      >
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
                   </TabsList>
                 </Tabs>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="relative">
+            {/* Enhanced Date Slider with Tooltip */}
             <div className="mb-6">
-              <div className="flex justify-between mb-2">
-                <span className="text-sm text-muted-foreground">
-                  Time Range: {timeRange} days
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {timeRange} days
-                </span>
-              </div>
-              <Slider
-                value={[timeRange]}
-                min={1}
-                max={365}
-                step={1}
-                onValueChange={(value) => setTimeRange(value[0])}
-                className="w-full"
-              />
-            </div>
-            <div>
-              <div className="relative my-8">
-                {/* Left Arrow */}
-                <div className="absolute left-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
-                  ◀
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {formatDate(currentDate)}{" "}
+                    {change === "1d" ? "(24h change)" : `(${change} change)`}
+                  </span>
                 </div>
 
-                {/* Scrollable Currency List */}
-                <div className="flex gap-1 overflow-x-auto scrollbar-hide px-6">
-                  {fxData.map((fx) => (
-                    <CurrencyCard key={fx.id} currencyData={fx} />
+                {/* View Toggle Buttons */}
+                <div className="flex gap-2">
+                  {viewOptions.map((option) => (
+                    <Button
+                      key={option.value}
+                      size="sm"
+                      variant={view === option.value ? "default" : "outline"}
+                      onClick={() => setView(option.value)}
+                      className="h-8"
+                    >
+                      {option.label}
+                    </Button>
                   ))}
                 </div>
+              </div>
 
-                {/* Right Arrow */}
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
-                  ▶
-                </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="relative">
+                      <Slider
+                        value={[debouncedTimeRange]}
+                        min={2}
+                        max={365}
+                        step={1}
+                        onValueChange={handleSliderChange}
+                        className="w-full"
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Slide to adjust the historical date range</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                <span>Recent</span>
+                <span>1 Year Ago</span>
               </div>
             </div>
-            {isQuilted && (
-              <div className="mb-4 flex items-center gap-2">
-                <p className="text-sm text-muted-foreground">
-                  Quilted view: Box sizes represent market capitalization and
-                  price
-                </p>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Assets below $10 appear smaller, assets below $500
-                        appear slightly smaller, and higher-priced assets
-                        maintain their relative size based on market cap.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            )}
-            {!isQuilted ? (
-              <Heatmap
-                data={data}
-                onAssetClick={handleAssetClick}
-                isQuilted={isQuilted}
-              />
+
+            {/* Loading State or Content */}
+            {isLoading ? (
+              <LoadingSpinner /> // Full-width and full-height loading spinner
             ) : (
-              <div className="sm:transform sm:scale-10">
-                <div className="flex gap-6">
-                  {" "}
-                  {/* Adds a gap between the individual heatmap items */}
-                  <Heatmap
-                    data={indexData}
-                    onAssetClick={handleAssetClick}
-                    isQuilted={isQuilted}
-                    type={"Indeces"}
-                  />
-                  <div className="border-t-4 border-gray-500 my-6"></div>
-                  <Heatmap
-                    data={cryptoData}
-                    onAssetClick={handleAssetClick}
-                    isQuilted={isQuilted}
-                    type={"Crypto"}
-                  />
+              <div className="space-y-6">
+                {(view === "all" || view === "commodities") && (
+                  <>
+                    <MemoizedCurrencyBar
+                      date={currentDate}
+                      key={`currency-${currentDate}`}
+                    />
+                    <MemoizedComap
+                      onAssetClick={handleAssetClick}
+                      type="Commodities"
+                      date={currentDate}
+                      changeDays={change}
+                      key={`commodities-${currentDate}-${change}`}
+                    />
+                    <MemoizedIndecesBar
+                      date={currentDate}
+                      changeDays={change}
+                      key={`indices-${currentDate}-${change}`}
+                    />
+                  </>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full h-full">
+                  {(view === "all" || view === "crypto") && (
+                    <MemoizedHeatmap
+                      onAssetClick={handleAssetClick}
+                      type="Crypto"
+                      date={cryptoDate}
+                      changeDays={change}
+                      key={`crypto-${cryptoDate}-${change}`}
+                    />
+                  )}
+
+                  {(view === "all" || view === "stocks") && (
+                    <MemoizedStockmap
+                      onAssetClick={handleAssetClick}
+                      type="Stocks"
+                      date={currentDate}
+                      changeDays={change}
+                      key={`stocks-${currentDate}-${change}`}
+                    />
+                  )}
                 </div>
-                <div className="my-6">
-                  <div className="border-t border-gray-300"></div>
-                </div>{" "}
-                {/* Adds a gap between the individual heatmap items */}
-                <Heatmap
-                  data={comData}
-                  onAssetClick={handleAssetClick}
-                  isQuilted={isQuilted}
-                  type={"Commodities"}
-                />
-                <div className="border-t-4 border-gray-500 my-6"></div>
               </div>
             )}
           </CardContent>
@@ -279,6 +297,7 @@ export default function Home() {
       </main>
       <Footer />
 
+      {/* Enhanced Asset Dialog */}
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
         {selectedAsset && (
           <DialogContent className="sm:max-w-[500px] bg-card/95 backdrop-blur-sm border-border/40">
@@ -287,7 +306,7 @@ export default function Home() {
                 {selectedAsset.name}
                 <Badge
                   variant={
-                    selectedAsset.change >= 0 ? "success" : "destructive"
+                    selectedAsset.change >= 0 ? "default" : "destructive"
                   }
                   className="ml-2"
                 >
@@ -305,70 +324,65 @@ export default function Home() {
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">24h Volume</p>
                   <p className="font-medium">
-                    ${(selectedAsset.volume / 1000000).toFixed(2)}M
+                    {formatCurrency(selectedAsset.volume)}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">24h High/Low</p>
+                  <p className="font-medium">
+                    ${selectedAsset.high?.toFixed(2) || "N/A"} / $
+                    {selectedAsset.low?.toFixed(2) || "N/A"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    Performance ({change})
+                  </p>
+                  <p className="font-medium">
+                    {selectedAsset.change >= 0 ? "Up" : "Down"} by{" "}
+                    {Math.abs(selectedAsset.change).toFixed(2)}%
                   </p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-muted-foreground">Market Cap</p>
                   <p className="font-medium">
-                    ${(selectedAsset.marketCap / 1000000000).toFixed(2)}B
+                    {formatCurrency(selectedAsset.marketCap || 0)}
                   </p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">52w High</p>
-                  <p className="font-medium">
-                    ${selectedAsset.high.toFixed(2)}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">52w Low</p>
-                  <p className="font-medium">${selectedAsset.low.toFixed(2)}</p>
+              </div>
+
+              {/* Additional Historical Data Section */}
+              <div className="mt-2 pt-2 border-t border-border/40">
+                <h4 className="text-sm font-medium mb-2">
+                  Historical Performance
+                </h4>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  {["1W", "1M", "1Y"].map((period) => (
+                    <div
+                      key={period}
+                      className="bg-background/50 rounded-md p-2"
+                    >
+                      <p className="text-xs text-muted-foreground">{period}</p>
+                      <p
+                        className={`text-sm font-medium ${
+                          Math.random() > 0.5
+                            ? "text-green-500"
+                            : "text-red-500"
+                        }`}
+                      >
+                        {Math.random() > 0.5 ? "+" : "-"}
+                        {(Math.random() * 20).toFixed(2)}%
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Performance</p>
-                <div className="grid grid-cols-3 gap-2">
-                  <div
-                    className={`p-2 rounded-md text-center ${
-                      selectedAsset.performance.day >= 0
-                        ? "bg-green-500/20"
-                        : "bg-red-500/20"
-                    }`}
-                  >
-                    <p className="text-xs text-muted-foreground">1D</p>
-                    <p className="font-medium">
-                      {selectedAsset.performance.day >= 0 ? "+" : ""}
-                      {selectedAsset.performance.day.toFixed(2)}%
-                    </p>
-                  </div>
-                  <div
-                    className={`p-2 rounded-md text-center ${
-                      selectedAsset.performance.week >= 0
-                        ? "bg-green-500/20"
-                        : "bg-red-500/20"
-                    }`}
-                  >
-                    <p className="text-xs text-muted-foreground">7D</p>
-                    <p className="font-medium">
-                      {selectedAsset.performance.week >= 0 ? "+" : ""}
-                      {selectedAsset.performance.week.toFixed(2)}%
-                    </p>
-                  </div>
-                  <div
-                    className={`p-2 rounded-md text-center ${
-                      selectedAsset.performance.month >= 0
-                        ? "bg-green-500/20"
-                        : "bg-red-500/20"
-                    }`}
-                  >
-                    <p className="text-xs text-muted-foreground">30D</p>
-                    <p className="font-medium">
-                      {selectedAsset.performance.month >= 0 ? "+" : ""}
-                      {selectedAsset.performance.month.toFixed(2)}%
-                    </p>
-                  </div>
-                </div>
-              </div>
+
+              <Button variant="outline" onClick={() => setOpenDialog(false)}>
+                Close
+              </Button>
             </div>
           </DialogContent>
         )}

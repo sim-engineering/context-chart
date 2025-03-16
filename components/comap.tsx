@@ -11,7 +11,7 @@ interface HeatmapProps {
   changeDays: string;
 }
 
-const Heatmap: React.FC<HeatmapProps> = ({
+const Comap: React.FC<HeatmapProps> = ({
   onAssetClick,
   type = null,
   date = null,
@@ -20,11 +20,12 @@ const Heatmap: React.FC<HeatmapProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<Asset[] | null>(null);
 
+  console.log("Data:", data);
   useEffect(() => {
     setLoading(true);
 
     const fetchData = () => {
-      fetch(`/api/crypto?date=${date}`)
+      fetch(`/api/commodity?date=${date}`)
         .then((res) => {
           if (!res.ok) {
             setData([]);
@@ -67,13 +68,13 @@ const Heatmap: React.FC<HeatmapProps> = ({
       Math.min(3, Math.ceil((3 * asset.volume) / maxVolume))
     );
 
-    if (asset.close < 10) {
+    if (asset.price < 10) {
       baseSize = Math.max(1, baseSize - 2);
-    } else if (asset.close < 100) {
+    } else if (asset.price < 100) {
       baseSize = Math.max(1, baseSize - 1);
-    } else if (asset.close < 500) {
+    } else if (asset.price < 500) {
       baseSize = Math.max(1, baseSize);
-    } else if (asset.close < 1000) {
+    } else if (asset.price < 1000) {
       baseSize = Math.min(5, baseSize + 1);
     }
 
@@ -128,21 +129,7 @@ const Heatmap: React.FC<HeatmapProps> = ({
               >
                 <div className="flex justify-between items-start w-full">
                   <div className="overflow-hidden">
-                    <h4
-                      className={`font-medium truncate ${
-                        size === 1
-                          ? "text-xs sm:text-[10px]"
-                          : "text-sm sm:text-xs"
-                      }`}
-                      title={asset.name}
-                    >
-                      {asset.symbol}
-                    </h4>
-                    {size && (
-                      <span className="text-xs sm:text-[10px] text-muted-foreground truncate block">
-                        {asset.type}
-                      </span>
-                    )}
+                    <h4>{asset.symbol}</h4>
                   </div>
                   <span
                     className={`${
@@ -159,14 +146,6 @@ const Heatmap: React.FC<HeatmapProps> = ({
                 </div>
 
                 <div className="mt-auto">
-                  {size && (
-                    <p
-                      className="text-xs sm:text-[10px] text-muted-foreground truncate"
-                      title={asset.name}
-                    >
-                      {asset.name}
-                    </p>
-                  )}
                   <p
                     className={`${
                       size === 1
@@ -175,15 +154,10 @@ const Heatmap: React.FC<HeatmapProps> = ({
                     } font-medium ${size === 1 ? "mt-0" : "mt-1"}`}
                   >
                     $
-                    {asset.close < 1
-                      ? asset.close.toFixed(1)
-                      : asset.close.toFixed(size === 1 ? 0 : 2)}
+                    {asset.price < 1
+                      ? asset.price.toFixed(1)
+                      : asset.price.toFixed(size === 1 ? 0 : 2)}
                   </p>
-                  {size && (
-                    <p className="text-xs sm:text-[10px] text-muted-foreground mt-1">
-                      Volume: ${(asset.volume / 1000000000).toFixed(1)}B
-                    </p>
-                  )}
                 </div>
               </div>
             );
@@ -200,4 +174,4 @@ const Heatmap: React.FC<HeatmapProps> = ({
   );
 };
 
-export default Heatmap;
+export default Comap;
