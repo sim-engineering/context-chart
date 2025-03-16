@@ -29,125 +29,21 @@ import IndecesBar from "@/components/indexes";
 import Comap from "@/components/comap";
 import { Button } from "@/components/ui/button";
 
-function daysAgoToDate(days: number): string {
-  const today = new Date();
-  today.setDate(today.getDate() - days - 1);
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
 
-  const dayOfWeek = today.getDay();
-  if (dayOfWeek === 6) today.setDate(today.getDate() - 1);
-  if (dayOfWeek === 0) today.setDate(today.getDate() - 2);
-
-  return today.toISOString().split("T")[0];
-}
-
-// Example data in the required format with multiple currencies
-const sampleData = {
-  "2023-01-01": {
-    currencies: [
-      { symbol: "BTC", price: 42000, change_1d: 2.5, change_7d: -1.2 },
-      { symbol: "ETH", price: 2200, change_1d: 1.8, change_7d: 3.5 },
-      { symbol: "DOGE", price: 0.08, change_1d: 5.2, change_7d: -2.1 },
-      { symbol: "PEPE", price: 0.000001, change_1d: 12.5, change_7d: 25.8 },
-    ],
-  },
-  "2023-01-02": {
-    currencies: [
-      { symbol: "BTC", price: 43050, change_1d: 2.5, change_7d: -0.8 },
-      { symbol: "ETH", price: 2240, change_1d: 1.8, change_7d: 4.2 },
-      { symbol: "DOGE", price: 0.082, change_1d: 2.5, change_7d: -1.5 },
-      { symbol: "PEPE", price: 0.0000012, change_1d: 20.0, change_7d: 30.2 },
-    ],
-  },
-  "2023-01-03": {
-    currencies: [
-      { symbol: "BTC", price: 42500, change_1d: -1.3, change_7d: -0.5 },
-      { symbol: "ETH", price: 2280, change_1d: 1.8, change_7d: 5.1 },
-      { symbol: "DOGE", price: 0.079, change_1d: -3.7, change_7d: -0.8 },
-      { symbol: "PEPE", price: 0.0000011, change_1d: -8.3, change_7d: 22.5 },
-    ],
-  },
-  "2023-01-04": {
-    currencies: [
-      { symbol: "BTC", price: 43200, change_1d: 1.6, change_7d: 0.2 },
-      { symbol: "ETH", price: 2310, change_1d: 1.3, change_7d: 5.8 },
-      { symbol: "DOGE", price: 0.081, change_1d: 2.5, change_7d: -0.2 },
-      { symbol: "PEPE", price: 20000, change_1d: 18.2, change_7d: 25.1 },
-    ],
-  },
-  "2023-01-05": {
-    currencies: [
-      { symbol: "BTC", price: 44100, change_1d: 2.1, change_7d: 1.5 },
-      { symbol: "ETH", price: 2350, change_1d: 1.7, change_7d: 6.2 },
-      { symbol: "DOGE", price: 0.085, change_1d: 4.9, change_7d: 1.2 },
-      { symbol: "PEPE", price: 20000, change_1d: 15.4, change_7d: 28.3 },
-    ],
-  },
-  "2023-01-06": {
-    currencies: [
-      { symbol: "BTC", price: 43800, change_1d: -0.7, change_7d: 2.1 },
-      { symbol: "ETH", price: 2330, change_1d: -0.9, change_7d: 5.5 },
-      { symbol: "DOGE", price: 0.083, change_1d: -2.4, change_7d: 2.5 },
-      { symbol: "PEPE", price: 0.0000014, change_1d: -6.7, change_7d: 27.2 },
-    ],
-  },
-  "2023-01-07": {
-    currencies: [
-      { symbol: "BTC", price: 44500, change_1d: 1.6, change_7d: 2.8 },
-      { symbol: "ETH", price: 2380, change_1d: 2.1, change_7d: 6.8 },
-      { symbol: "DOGE", price: 0.086, change_1d: 3.6, change_7d: 3.8 },
-      { symbol: "PEPE", price: 0.0000016, change_1d: 14.3, change_7d: 30.5 },
-    ],
-  },
-};
-
-// Example news events
-const sampleNewsEvents = [
-  {
-    date: "2023-01-02",
-    title: "Major Exchange Adds New Trading Pairs",
-    content:
-      "A leading cryptocurrency exchange announced the addition of several new trading pairs, expanding options for traders.",
-    impact: 6,
-    sentiment: "positive",
-    source: "CryptoNews",
-  },
-  {
-    date: "2023-01-04",
-    title: "PEPE Meme Coin Gains Popularity",
-    content:
-      "The PEPE meme coin has seen a surge in popularity on social media platforms, driving increased trading volume.",
-    impact: 7,
-    sentiment: "positive",
-    source: "MemeWatch",
-  },
-  {
-    date: "2023-01-05",
-    title: "Regulatory Framework Announced",
-    content:
-      "Government officials unveiled a new regulatory framework for cryptocurrencies, providing more clarity for institutional investors.",
-    impact: 8,
-    sentiment: "positive",
-    source: "Financial Times",
-  },
-  {
-    date: "2023-01-06",
-    title: "Network Congestion Issues",
-    content:
-      "The Bitcoin network experienced significant congestion, leading to higher transaction fees and slower confirmation times.",
-    impact: 7,
-    sentiment: "negative",
-    source: "Blockchain Monitor",
-  },
-];
-
-const getChangeField = (asset: Asset, change: string) => {
-  if (change === "1d") return asset.change_1d;
-  if (change === "7d") return asset.change_7d;
-  if (change === "1m") return asset.change_1m;
-  if (change === "3m") return asset.change_3m;
-  if (change === "1y") return asset.change_1y;
-  return asset.change_1d;
-};
+import { sampleNewsEvents } from "@/types/mock";
+import {
+  daysAgoToDate,
+  getChangeField,
+  getCurrencyColor,
+} from "@/utils/helpers";
 
 export default function Home() {
   const [timeRange, setTimeRange] = useState(1);
@@ -158,17 +54,50 @@ export default function Home() {
   const [showCom, setShowCom] = useState(false);
   const [showIndex, setShowIndex] = useState(false);
   const [showCurrency, setShowCurrency] = useState(false);
+  const [mergedData, setMergedData] = useState({});
+
+  const [availableCurrencies, setAvailableCurrencies] = useState([]);
+  const [availableCrypto, setAvailableCrypto] = useState([]);
+  const [selectedCrypto, setSelectedCrypto] = useState<string[]>([]);
+  const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchAvailableCurrencies = async () => {
+      try {
+        const response = await fetch("/api/stocks/list");
+        const data = await response.json();
+        setAvailableCurrencies(data);
+        setSelectedCurrencies(data);
+      } catch (error) {
+        console.error("Error fetching available currencies:", error);
+      }
+    };
+
+    const fetchAvailableCrypto = async () => {
+      try {
+        const response = await fetch("/api/crypto/list");
+        const data = await response.json();
+        setAvailableCrypto(data);
+        setSelectedCrypto(data);
+      } catch (error) {
+        console.error("Error fetching available crypto:", error);
+      }
+    };
+
+    fetchAvailableCurrencies();
+    fetchAvailableCrypto();
+  }, []);
 
   const toggleIndex = () => {
-    setShowIndex(!showIndex);
+    setShowIndex((prevShowIndex) => !prevShowIndex);
   };
 
   const toggleComms = () => {
-    setShowCom(!showCom);
+    setShowCom((prevShowCom) => !prevShowCom);
   };
 
-  const toggleCurrenct = () => {
-    setShowCurrency(!showCurrency);
+  const toggleCurrency = () => {
+    setShowCurrency((prevShowCurrency) => !prevShowCurrency);
   };
 
   const handleAssetClick = (asset: Asset) => {
@@ -188,12 +117,69 @@ export default function Home() {
     return () => clearTimeout(handler);
   }, [debouncedTimeRange]);
 
+  useEffect(() => {
+    if (!selectedCrypto || !selectedCurrencies) return;
+
+    const fetchData = async () => {
+      try {
+        const [cryptoResponse, stocksResponse] = await Promise.all([
+          fetch(`/api/crypto?from=${daysAgoToDate(timeRange)}`),
+          fetch(`/api/stocks?from=${daysAgoToDate(timeRange)}`),
+        ]);
+
+        const cryptoData = await cryptoResponse.json();
+        const stocksData = await stocksResponse.json();
+
+        console.log(cryptoData, stocksData);
+        const allDates = new Set([
+          ...Object.keys(cryptoData),
+          ...Object.keys(stocksData),
+        ]);
+        const combinedData = {};
+
+        allDates.forEach((date) => {
+          const cryptoCurrencies = cryptoData[date]?.currencies || [];
+          const stockCurrencies = stocksData[date]?.currencies || [];
+
+          const mergedCurrencies = [...cryptoCurrencies, ...stockCurrencies];
+
+          combinedData[date] = { currencies: mergedCurrencies };
+        });
+
+        console.log("HAHA:", combinedData);
+        setMergedData(combinedData);
+
+        console.log("Merged Data: ", combinedData);
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+      }
+    };
+
+    fetchData();
+  }, [selectedCrypto, selectedCurrencies, timeRange]);
+
+  const selectCrypto = (currency: string) => {
+    setSelectedCrypto((prevSelected) =>
+      prevSelected.includes(currency)
+        ? prevSelected.filter((item) => item !== currency)
+        : [...prevSelected, currency]
+    );
+  };
+
+  const selectCurrencies = (currency: string) => {
+    setSelectedCurrencies((prevSelected) =>
+      prevSelected.includes(currency)
+        ? prevSelected.filter((item) => item !== currency)
+        : [...prevSelected, currency]
+    );
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-background dark">
+    <div className="flex flex-col bg-background dark">
       <link rel="icon" href="/favicon.ico" sizes="any" />
 
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-6">
+      <main className="flex-1 container mx-auto px-1 py-6">
         <Card className="border-border/40 bg-card/30 backdrop-blur-sm">
           <CardHeader>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -233,6 +219,72 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="mb-2">
+              <div className="w-full flex justify-end">
+                <div className="mr-4">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <span>Crypto</span>
+                        <Badge>{selectedCrypto.length}</Badge>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuSeparator />
+                      {availableCrypto.map((currency) => (
+                        <DropdownMenuCheckboxItem
+                          key={currency}
+                          checked={selectedCrypto.includes(currency)}
+                          onCheckedChange={() => selectCrypto(currency)}
+                          className="bg-black hover:bg-secondary"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor: getCurrencyColor(currency),
+                              }}
+                            />
+                            {currency}
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="gap-2">
+                        <span>Currencies</span>
+                        <Badge>{selectedCurrencies.length}</Badge>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuSeparator />
+                      {availableCurrencies.map((currency) => (
+                        <DropdownMenuCheckboxItem
+                          key={currency}
+                          checked={selectedCurrencies.includes(currency)}
+                          onCheckedChange={() => selectCurrencies(currency)}
+                          className="bg-black hover:bg-secondary"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{
+                                backgroundColor: getCurrencyColor(currency),
+                              }}
+                            />
+                            {currency}
+                          </div>
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              <div className="w-full flex justify-end"></div>
               <div className="flex justify-between mb-5">
                 <span className="text-sm text-muted-foreground">
                   Date: {daysAgoToDate(timeRange)}
@@ -248,11 +300,38 @@ export default function Home() {
               />
             </div>
 
+            <div className="flex flex-col sm:flex-row gap-6 w-full h-full">
+              <div className="flex-1">
+                <Heatmap
+                  onAssetClick={handleAssetClick}
+                  type="Crypto"
+                  date={daysAgoToDate(timeRange)}
+                  changeDays={change}
+                />
+              </div>
+              <div className="flex-1">
+                <Stockmap
+                  onAssetClick={handleAssetClick}
+                  type="Stocks"
+                  date={daysAgoToDate(timeRange)}
+                  changeDays={change}
+                />
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-950 ">
+              <CurrencyChart
+                data={mergedData}
+                newsEvents={sampleNewsEvents}
+                defaultCurrencies={availableCrypto.concat(availableCurrencies)}
+              />
+            </div>
+
             {showCurrency ? (
               <div className="w-full h-full animate-fade-in">
                 <div
                   className="relative my-2 w-full h-full"
-                  onClick={toggleCurrenct}
+                  onClick={toggleCurrency}
                 >
                   <CurrencyBar date={daysAgoToDate(timeRange)} />
                 </div>
@@ -262,7 +341,7 @@ export default function Home() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={toggleCurrenct}
+                  onClick={toggleCurrency}
                   className="hover:scale-110 transition-transform duration-200"
                 >
                   Show Currency
@@ -319,35 +398,6 @@ export default function Home() {
                 </Button>
               </div>
             )}
-
-            <div className="flex flex-col sm:flex-row gap-6 w-full h-full">
-              <div className="flex-1">
-                <Heatmap
-                  onAssetClick={handleAssetClick}
-                  type="Crypto"
-                  date={daysAgoToDate(timeRange)}
-                  changeDays={change}
-                />
-              </div>
-              <div className="flex-1">
-                <Stockmap
-                  onAssetClick={handleAssetClick}
-                  type="Stocks"
-                  date={daysAgoToDate(timeRange)}
-                  changeDays={change}
-                />
-              </div>
-            </div>
-
-            <div className="p-4 bg-slate-950 min-h-screen">
-              <CurrencyChart
-                data={sampleData}
-                newsEvents={sampleNewsEvents}
-                title="Cryptocurrency Performance"
-                description="Multi-currency price chart with market events"
-                defaultCurrencies={["BTC", "ETH", "DOGE", "PEPE"]}
-              />
-            </div>
           </CardContent>
         </Card>
       </main>
@@ -374,7 +424,7 @@ export default function Home() {
                 {selectedAsset.type} • Current Price: $
                 {selectedAsset.price
                   ? selectedAsset.price.toFixed(2)
-                  : selectedAsset.close.toFixed(2)}
+                  : selectedAsset.price.toFixed(2)}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4">

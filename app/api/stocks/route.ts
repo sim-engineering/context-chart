@@ -9,11 +9,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const requestedDate = searchParams.get("date");
+  const fromDate = searchParams.get("from"); // New "from" parameter
 
   const today = new Date();
   const twoYearsAgo = new Date();
   twoYearsAgo.setFullYear(today.getFullYear() - 2);
-  const formattedStartDate = twoYearsAgo.toISOString().split("T")[0];
+  const formattedStartDate = fromDate
+    ? fromDate // Use "from" parameter if present
+    : twoYearsAgo.toISOString().split("T")[0];
   const formattedEndDate = today.toISOString().split("T")[0];
 
   try {
@@ -77,6 +80,7 @@ const handleResponse = (data: any[], requestedDate: string | null) => {
 
   return NextResponse.json(result);
 };
+
 const transformAssetData = (data: any[]) => {
   const result: Record<
     string,

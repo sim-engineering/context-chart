@@ -112,7 +112,7 @@ const CustomTooltip = ({
             if (!currencySymbol || !visibleCurrencies.includes(currencySymbol))
               return null;
 
-            const currencyData = entry.payload[`${currencySymbol}_data`];
+            const currencyData = entry.payload[`${currencySymbol}`];
             if (!currencyData) return null;
 
             return (
@@ -184,7 +184,6 @@ const CustomTooltip = ({
   return null;
 };
 
-// Custom news bubble component
 const NewsBubble = ({ event }: { event: NewsEvent }) => {
   return (
     <Popover>
@@ -252,71 +251,29 @@ const NewsBubble = ({ event }: { event: NewsEvent }) => {
   );
 };
 
-// Custom legend for currencies
-const CurrencyLegend = ({
-  currencies,
-  visibleCurrencies,
-  toggleCurrency,
-}: {
-  currencies: string[];
-  visibleCurrencies: string[];
-  toggleCurrency: (currency: string) => void;
-}) => {
-  return (
-    <div className="flex flex-wrap gap-3 mt-2">
-      {currencies.map((currency) => (
-        <div
-          key={currency}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors ${
-            visibleCurrencies.includes(currency)
-              ? "bg-slate-800 hover:bg-slate-700"
-              : "bg-slate-900/50 hover:bg-slate-800/50 opacity-60"
-          }`}
-          onClick={() => toggleCurrency(currency)}
-        >
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: getCurrencyColor(currency) }}
-          />
-          <span className="font-medium text-sm">{currency}</span>
-          {visibleCurrencies.includes(currency) ? (
-            <Check className="h-3.5 w-3.5 text-green-500" />
-          ) : (
-            <X className="h-3.5 w-3.5 text-slate-400" />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-};
-
 export default function CurrencyChart({
   data,
   newsEvents = [],
-  title = "Currency Performance",
-  description = "Price chart with overlaid news events",
   defaultCurrencies = [],
   defaultTimeframe = "1M",
 }: CurrencyChartProps) {
   const isDarkMode = true;
-  const [activeTimeframe, setActiveTimeframe] = useState(defaultTimeframe);
   const [mounted, setMounted] = useState(false);
 
-  // Get all available currencies from the data
+  // Get all  currencies from the data
   const availableCurrencies = useMemo(() => {
     const firstDate = Object.keys(data)[0];
     if (!firstDate) return [];
+
     return data[firstDate]?.currencies.map((c) => c.symbol) || [];
   }, [data]);
 
-  // Set visible currencies with defaults or all if none provided
   const [visibleCurrencies, setVisibleCurrencies] = useState<string[]>(
     defaultCurrencies.length > 0
       ? defaultCurrencies.filter((c) => availableCurrencies.includes(c))
       : availableCurrencies
   );
 
-  // Replace the entire processedData useMemo with this updated version:
   const processedData = useMemo(() => {
     return Object.entries(data)
       .map(([date, dayData]) => {
@@ -327,7 +284,7 @@ export default function CurrencyChart({
         dayData.currencies.forEach((currency) => {
           result[currency.symbol] = currency.price;
           // Store the full currency data for tooltip access
-          result[`${currency.symbol}_data`] = {
+          result[`${currency.symbol}`] = {
             price: currency.price,
             change_1d: currency.change_1d,
             change_7d: currency.change_7d,
@@ -337,82 +294,39 @@ export default function CurrencyChart({
         // Check if there's a news event for this date
         result.hasNews = newsEvents.some((event) => event.date === date);
 
+        console.log("Result here;", result);
         return result;
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [data, newsEvents]);
 
-  // Toggle currency visibility
-  const toggleCurrency = (currency: string) => {
-    setVisibleCurrencies((prev) =>
-      prev.includes(currency)
-        ? prev.filter((c) => c !== currency)
-        : [...prev, currency]
-    );
-  };
-
-  // Update the useEffect to always set dark mode:
   useEffect(() => {
     setMounted(true);
     document.documentElement.classList.add("dark");
   }, []);
 
-  // Only render content after mounting to avoid hydration mismatch
   if (!mounted) {
     return <div className="w-full h-[600px] bg-background animate-pulse"></div>;
   }
 
-  // Format date for display
   const formatDate = (timestamp: string) => {
     return format(new Date(timestamp), "MMM d");
   };
 
-  // Update the calculate min and max for better axis scaling:
-  // Calculate min and max for better axis scaling across all visible currencies
   const allPrices = processedData.flatMap((d) =>
     visibleCurrencies
       .filter((currency) => d[currency] !== undefined)
       .map((currency) => d[currency])
   );
 
+  console.log("All Price: ", allPrices);
   const minPrice = Math.floor(Math.min(...allPrices) * 0.98) || 0;
   const maxPrice = Math.ceil(Math.max(...allPrices) * 1.02) || 100;
 
-  // Update the Card component to always use dark theme:
   return (
     <Card className="w-full border-0 bg-slate-950 text-slate-200 shadow-xl shadow-slate-900/20">
-      <CardHeader className="pb-2">
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <span>Currencies</span>
-                <Badge>{visibleCurrencies.length}</Badge>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuSeparator />
-              {availableCurrencies.map((currency) => (
-                <DropdownMenuCheckboxItem
-                  key={currency}
-                  checked={visibleCurrencies.includes(currency)}
-                  onCheckedChange={() => toggleCurrency(currency)}
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: getCurrencyColor(currency) }}
-                    />
-                    {currency}
-                  </div>
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardHeader>
       <CardContent>
-        <div className="h-[450px] relative">
+        <div className="h-[250px] relative">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={processedData}
@@ -454,9 +368,6 @@ export default function CurrencyChart({
                 }}
               />
 
-              {/* Update the chart rendering to fix the lines: */}
-              {/* In the ComposedChart section, update the Line components: */}
-              {/* Render a line for each visible currency */}
               {visibleCurrencies.map((currency) => (
                 <Line
                   key={currency}
@@ -546,7 +457,7 @@ export default function CurrencyChart({
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-slate-300">
             {visibleCurrencies.map((currency) => {
               const latestData =
-                processedData[processedData.length - 1][`${currency}_data`];
+                processedData[processedData.length - 1][`${currency}`];
               if (!latestData) return null;
 
               return (
