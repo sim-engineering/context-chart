@@ -17,7 +17,6 @@ export type Asset = {
   performance: PerformanceRating;
   type: keyof typeof assetTypes;
   featured: boolean;
-  marketCapMultiplier?: number;
 };
 
 export type AssetType = {

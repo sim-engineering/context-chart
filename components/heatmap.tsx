@@ -1,37 +1,61 @@
 "use client";
-import { Asset, PerformanceRating, assetTypes } from "@/types/types";
+import { Asset } from "@/types/types";
 
 import { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 
 interface HeatmapProps {
-  data: Asset[];
   onAssetClick: (asset: Asset) => void;
-  isQuilted?: boolean;
   type?: string | null;
+  date: string | null;
 }
 
 const Heatmap: React.FC<HeatmapProps> = ({
-  data,
   onAssetClick,
-  isQuilted = false,
   type = null,
+  date = null,
 }) => {
-  const [groupedData, setGroupedData] = useState<GroupedData>({});
+  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useState<Asset[] | null>(null);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
-    const grouped = data.reduce(
-      (acc: { [key: string]: Asset[] }, item: Asset) => {
-        if (!acc[item.type]) {
-          acc[item.type] = [];
-        }
-        acc[item.type].push(item);
-        return acc;
-      },
-      {}
+    setLoading(true);
+
+    const fetchData = (attempt: number) => {
+      fetch(`/api/assets?date=${date}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch data");
+          return res.json();
+        })
+        .then((data) => {
+          setData(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error(`Error fetching forex data (attempt ${attempt}):`, err);
+
+          if (attempt < 1) {
+            setTimeout(() => {
+              setRetry((prev) => prev + 1);
+            }, 500);
+          } else {
+            setData([]);
+            setLoading(false);
+          }
+        });
+    };
+
+    fetchData(retry);
+  }, [date, retry]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center w-full h-full">
+        <Spinner />
+      </div>
     );
-    setGroupedData(grouped);
-  }, [data]);
+  }
 
   const getColorIntensity = (change: number) => {
     const absChange = Math.abs(change);
@@ -51,10 +75,14 @@ const Heatmap: React.FC<HeatmapProps> = ({
     return change >= 0 ? `bg-teal-800` : `bg-red-700`;
   };
 
-  const calculateSize = (asset: Asset, maxMarketCap: number) => {
+  const calculateSize = (asset: Asset, maxVolume: number) => {
+    if (asset.volume === 0) {
+      return 1;
+    }
+
     let baseSize = Math.max(
       1,
-      Math.min(3, Math.ceil((3 * asset.marketCap) / maxMarketCap))
+      Math.min(3, Math.ceil((3 * asset.volume) / maxVolume))
     );
 
     if (asset.price < 10) {
@@ -70,20 +98,34 @@ const Heatmap: React.FC<HeatmapProps> = ({
     return baseSize;
   };
 
-  const maxMarketCap = isQuilted
-    ? Math.max(...data.map((asset: Asset) => asset.marketCap))
-    : 0;
+  let maxVolume = 0;
 
-  if (isQuilted) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-lg sm:text-[15px] truncate block">{type}</h1>
-        <div className="grid grid-cols-6 gap-1 auto-rows-[20px] sm:scale-100 md:scale-20 lg:grid-cols-12 lg:gap-2 lg:auto-rows-[60px] grid-auto-flow-dense">
-          {data.map((asset: Asset) => {
-            const size = calculateSize(asset, maxMarketCap);
+  if (data && date) {
+    maxVolume =
+      data &&
+      data[date] &&
+      Array.isArray(data[date].currencies) &&
+      data[date].currencies.length > 0
+        ? Math.max(...data[date].currencies.map((asset: Asset) => asset.volume))
+        : 0;
+  }
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-lg sm:text-[15px] truncate block">{type}</h1>
+      <div className="grid grid-cols-6 gap-1 auto-rows-[20px] sm:scale-100 md:scale-20 lg:grid-cols-12 lg:gap-2 lg:auto-rows-[60px] grid-auto-flow-dense">
+        {data &&
+        data[date] &&
+        Array.isArray(data[date].currencies) &&
+        data[date].currencies.length > 0 ? (
+          data[date].currencies.map((asset: Asset) => {
+            let size = calculateSize(asset, maxVolume);
+            if (size < 1) {
+              size = 1; // Ensure there's always a minimum size
+            }
             return (
               <div
-                key={asset.id}
+                key={asset.symbol}
                 className={`${getBackgroundColor(
                   asset.change
                 )} p-2 rounded-lg cursor-pointer transition-all hover:shadow-lg flex flex-col justify-between overflow-hidden`}
@@ -119,7 +161,7 @@ const Heatmap: React.FC<HeatmapProps> = ({
                     } font-medium text-white`}
                   >
                     {asset.change >= 0 ? "+" : ""}
-                    {asset.change.toFixed(2)}%
+                    {asset.change && asset.change.toFixed(2)}%
                   </span>
                 </div>
 
@@ -152,65 +194,13 @@ const Heatmap: React.FC<HeatmapProps> = ({
                 </div>
               </div>
             );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  type GroupedData = {
-    [type: string]: Asset[];
-  };
-
-  return (
-    <div className="space-y-6">
-      {Object.entries(groupedData).map(([type, assets]) => (
-        <div key={type} className="space-y-2">
-          <h3 className="text-lg font-medium flex items-center gap-2">
-            {type}
-            <Badge variant="outline" className="ml-2">
-              {assets.length} assets
-            </Badge>
-          </h3>
-          <div className="grid grid-cols-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {assets.map((asset) => (
-              <div
-                key={asset.id}
-                className={`${getBackgroundColor(
-                  asset.change
-                )} p-2 sm:p-3 rounded-lg cursor-pointer transition-all hover:scale-105 hover:shadow-lg`}
-                onClick={() => onAssetClick(asset)}
-              >
-                <div className="flex justify-between items-start mb-1 sm:mb-2">
-                  <h4
-                    className="text-xs sm:text-sm font-medium truncate"
-                    title={asset.name}
-                  >
-                    {asset.symbol}
-                  </h4>
-                  <span
-                    className={`text-[10px] sm:text-xs font-medium ${
-                      asset.change >= 0 ? "text-green-700" : "text-red-700"
-                    }`}
-                  >
-                    {asset.change >= 0 ? "+" : ""}
-                    {asset.change.toFixed(2)}%
-                  </span>
-                </div>
-                <p
-                  className="text-[10px] sm:text-xs text-muted-foreground truncate"
-                  title={asset.name}
-                >
-                  {asset.name}
-                </p>
-                <p className="text-xs sm:text-sm font-medium mt-1">
-                  ${asset.price.toFixed(2)}
-                </p>
-              </div>
-            ))}
+          })
+        ) : (
+          <div className="flex items-center justify-center w-full h-full">
+            <Spinner />
           </div>
-        </div>
-      ))}
+        )}
+      </div>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -18,136 +18,38 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Grid2X2, LayoutGrid, Info } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Info } from "lucide-react";
 import { Asset } from "@/types/types";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Heatmap from "@/components/heatmap";
-import { generateDummyData } from "@/lib/dummy-data";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Spinner } from "@/components/ui/spinner";
-import CurrencyCard from "@/components/currency";
+import CurrencyBar from "@/components/currencies";
 
 function daysAgoToDate(days: number): string {
   const today = new Date();
-  today.setDate(today.getDate() - days);
-  return today.toISOString().split("T")[0]; // Formats as YYYY-MM-DD
+  today.setDate(today.getDate() - days - 1);
+
+  const dayOfWeek = today.getDay();
+  if (dayOfWeek === 6) today.setDate(today.getDate() - 1);
+  if (dayOfWeek === 0) today.setDate(today.getDate() - 2);
+
+  return today.toISOString().split("T")[0];
 }
 
 export default function Home() {
   const [timeRange, setTimeRange] = useState(1);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [isQuilted, setIsQuilted] = useState(true);
-  const [data, setData] = useState<Asset[] | null>(null);
-  const [indexData, setIndexData] = useState<Asset[] | null>(null);
-  const [comData, setComData] = useState<Asset[] | null>(null);
-  const [cryptoData, setCryptoData] = useState<Asset[] | null>(null);
-  const [fxData, setFxData] = useState<Asset[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState({
-    crypto: true,
-    indices: true,
-    commodities: true,
-    bonds: true,
-    forex: true,
-  });
-
-  const [isLoadingData, setIsLoadingData] = useState({
-    fx: false,
-    crypto: false,
-    indices: false,
-    commodities: false,
-  });
-
-  const [cardSize, setCardSize] = useState<"small" | "lg">("small");
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setCardSize("lg");
-      } else {
-        setCardSize("small");
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    handleResize();
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Update loading state for specific sections
-        setIsLoadingData({
-          fx: true,
-          crypto: true,
-          indices: true,
-          commodities: true,
-        });
-
-        const results = await Promise.all([
-          [],
-          [],
-          [],
-          [],
-          fetch(`/api/forex?date=${daysAgoToDate(timeRange)}`)
-            .then((res) => res.json())
-            .then((data) => data)
-            .catch((err) => {
-              console.error("Error fetching forex data:", err);
-              return [];
-            }),
-        ]);
-
-        const [d, i, c, crypto, fx] = results as [
-          Asset[],
-          Asset[],
-          Asset[],
-          Asset[],
-          Asset[]
-        ];
-
-        setData(d);
-        setIndexData(i);
-        setComData(c);
-        setCryptoData(crypto);
-        setFxData(fx);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-        setIsLoadingData({
-          fx: false,
-          crypto: false,
-          indices: false,
-          commodities: false,
-        });
-      }
-    };
-
-    fetchData();
-  }, [timeRange, selectedFilters]);
 
   const handleAssetClick = (asset: Asset) => {
     setSelectedAsset(asset);
     setOpenDialog(true);
-  };
-
-  const toggleViewMode = () => {
-    setIsQuilted(!isQuilted);
   };
 
   return (
@@ -168,24 +70,6 @@ export default function Home() {
                 </CardDescription>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto flex items-center gap-2"
-                  onClick={toggleViewMode}
-                >
-                  {isQuilted ? (
-                    <>
-                      <Grid2X2 className="h-4 w-4" />
-                      <span>Grid View</span>
-                    </>
-                  ) : (
-                    <>
-                      <LayoutGrid className="h-4 w-4" />
-                      <span>Quilted View</span>
-                    </>
-                  )}
-                </Button>
-
                 <Tabs defaultValue="1d" className="w-full sm:w-auto">
                   <TabsList className="grid grid-cols-6 w-full">
                     <TabsTrigger value="1d" onClick={() => setTimeRange(1)}>
@@ -220,7 +104,7 @@ export default function Home() {
               </div>
               <Slider
                 value={[timeRange]}
-                min={1}
+                min={2}
                 max={730}
                 step={1}
                 onValueChange={(value) => setTimeRange(value[0])}
@@ -229,96 +113,43 @@ export default function Home() {
             </div>
 
             <div className="relative my-8">
-              <div className="absolute left-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
-                ◀
-              </div>
-
-              <div
-                className="flex gap-1 overflow-x-auto scrollbar-hide px-4 md:px-6 justify-start sm:justify-center items-center"
-                style={{ height: "100px" }}
-              >
-                {isLoadingData.fx ? (
-                  <div
-                    className="flex justify-center items-center"
-                    style={{ height: "100%" }}
-                  >
-                    <Spinner size="sm" />
-                  </div>
-                ) : (
-                  fxData?.currencies.map((fx, index) => (
-                    <CurrencyCard
-                      key={fx.symbol}
-                      currencyData={fx}
-                      size={cardSize}
-                    />
-                  ))
-                )}
-              </div>
-
-              <div className="absolute right-1 top-1/2 -translate-y-1/2 bg-gray-800/70 text-white text-[10px] px-1 py-0.5 rounded-full shadow-md pointer-events-none">
-                ▶
-              </div>
+              <CurrencyBar date={daysAgoToDate(timeRange)} />
             </div>
 
-            {isQuilted && (
-              <div className="mb-4 flex items-center gap-2">
-                <p className="text-sm text-muted-foreground">
-                  Quilted view: Box sizes represent market capitalization and
-                  price
-                </p>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Assets below $10 appear smaller, assets below $500
-                        appear slightly smaller, and higher-priced assets
-                        maintain their relative size based on market cap.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            )}
-            {/* {!isQuilted ? (
-              <Heatmap
-                data={data}
-                onAssetClick={handleAssetClick}
-                isQuilted={isQuilted}
-              />
-            ) : (
-              <div className="sm:transform sm:scale-10">
-                <div className="flex gap-6">
-                  <Heatmap
-                    data={indexData}
-                    onAssetClick={handleAssetClick}
-                    isQuilted={isQuilted}
-                    type={"Indeces"}
-                    isLoading={isLoadingData.indices}
-                  />
-                  <div className="border-t-4 border-gray-500 my-6"></div>
-                  <Heatmap
-                    data={cryptoData}
-                    onAssetClick={handleAssetClick}
-                    isQuilted={isQuilted}
-                    type={"Crypto"}
-                    isLoading={isLoadingData.crypto}
-                  />
-                </div>
-                <div className="my-6">
-                  <div className="border-t border-gray-300"></div>
-                </div>
+            <div className="mb-4 flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                Quilted view: Box sizes represent market capitalization and
+                price
+              </p>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">
+                      Assets below $10 appear smaller, assets below $500 appear
+                      slightly smaller, and higher-priced assets maintain their
+                      relative size based on market cap.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            <div className="sm:transform sm:scale-10">
+              <div className="flex gap-6">
+                {" "}
+                {/* Adds a gap between the individual heatmap items */}
                 <Heatmap
-                  data={comData}
                   onAssetClick={handleAssetClick}
-                  isQuilted={isQuilted}
-                  type={"Commodities"}
-                  isLoading={isLoadingData.commodities}
+                  type={"Indeces"}
+                  date={daysAgoToDate(timeRange)}
                 />
+                <div className="border-t-4 border-gray-500 my-6"></div>
+                <div></div>
               </div>
-            )} */}
+            </div>
           </CardContent>
         </Card>
       </main>
@@ -352,66 +183,9 @@ export default function Home() {
                     ${(selectedAsset.volume / 1000000).toFixed(2)}M
                   </p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Market Cap</p>
-                  <p className="font-medium">
-                    ${(selectedAsset.marketCap / 1000000000).toFixed(2)}B
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">52w High</p>
-                  <p className="font-medium">
-                    ${selectedAsset.high.toFixed(2)}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">52w Low</p>
-                  <p className="font-medium">${selectedAsset.low.toFixed(2)}</p>
-                </div>
               </div>
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">Performance</p>
-                <div className="grid grid-cols-3 gap-2">
-                  <div
-                    className={`p-2 rounded-md text-center ${
-                      selectedAsset.performance.day >= 0
-                        ? "bg-green-500/20"
-                        : "bg-red-500/20"
-                    }`}
-                  >
-                    <p className="text-xs text-muted-foreground">1D</p>
-                    <p className="font-medium">
-                      {selectedAsset.performance.day >= 0 ? "+" : ""}
-                      {selectedAsset.performance.day.toFixed(2)}%
-                    </p>
-                  </div>
-                  <div
-                    className={`p-2 rounded-md text-center ${
-                      selectedAsset.performance.week >= 0
-                        ? "bg-green-500/20"
-                        : "bg-red-500/20"
-                    }`}
-                  >
-                    <p className="text-xs text-muted-foreground">7D</p>
-                    <p className="font-medium">
-                      {selectedAsset.performance.week >= 0 ? "+" : ""}
-                      {selectedAsset.performance.week.toFixed(2)}%
-                    </p>
-                  </div>
-                  <div
-                    className={`p-2 rounded-md text-center ${
-                      selectedAsset.performance.month >= 0
-                        ? "bg-green-500/20"
-                        : "bg-red-500/20"
-                    }`}
-                  >
-                    <p className="text-xs text-muted-foreground">30D</p>
-                    <p className="font-medium">
-                      {selectedAsset.performance.month >= 0 ? "+" : ""}
-                      {selectedAsset.performance.month.toFixed(2)}%
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
           </DialogContent>

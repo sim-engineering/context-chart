@@ -3,22 +3,16 @@ import axios from "axios";
 
 const CACHE: { [key: string]: { data?: any; lastFetched?: string } } = {};
 
-const fetchStockData = async (
-  symbol: string,
-  dateFrom: string,
-  dateTo: string
-): Promise<any> => {
+const fetchStockData = async (symbol: string): Promise<any> => {
   const url =
     "https://financialmodelingprep.com/stable/historical-price-eod/light";
-  const accessKey = process.env.NEXT_PUBLIC_FMP_API_KEY; // Set the API key in environment variables
+  const accessKey = process.env.NEXT_PUBLIC_FMP_API_KEY; // Ensure the API key is correctly set
 
-  console.log(`Fetching data for ${symbol}`);
   const params = {
     apikey: accessKey,
     symbol: symbol,
   };
 
-  console.log(url, params);
   try {
     const response = await axios.get(url, { params });
     return response.data;
@@ -28,60 +22,77 @@ const fetchStockData = async (
   }
 };
 
-const getCachedData = (symbol: string, today: string) => {
-  if (CACHE[symbol] && CACHE[symbol].lastFetched === today) {
-    console.log(`Returning cached data for ${symbol}`);
-    return CACHE[symbol].data;
+const getCachedData = (date: string) => {
+  if (CACHE[date] && CACHE[date].lastFetched === date) {
+    return CACHE[date].data;
   }
   return null;
 };
 
-const cacheData = (symbol: string, data: any, today: string) => {
-  CACHE[symbol] = {
+const cacheData = (date: string, data: any) => {
+  CACHE[date] = {
     data,
-    lastFetched: today,
+    lastFetched: date,
   };
 };
 
-// Function to add delay between requests
+// Function to add delay between requests (if needed)
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const symbols = (
-    searchParams.get("symbols") ||
-    "^GSPC,^DJI,^IXIC,^RUT,^FTSE,^N225,^HSI,^STOXX50E,^VIX"
-  ).split(",");
-  const dateFrom = searchParams.get("date_from") || "2024-03-05";
-  const dateTo = searchParams.get("date_to") || "2025-03-15";
-  const today = new Date().toISOString().split("T")[0];
+  const requestedDate = searchParams.get("date");
 
-  const result: { [key: string]: any } = {};
+  // Use the provided date or default to today's date
+  const today = requestedDate || new Date().toISOString().split("T")[0];
 
-  // Loop through each symbol and fetch data one by one
-  for (const symbol of symbols) {
-    const cachedData = getCachedData(symbol, today);
-
-    if (cachedData) {
-      result[symbol] = cachedData;
-    } else {
-      try {
-        console.log(`Fetching new data for ${symbol}`);
-        const stockData = await fetchStockData(symbol, dateFrom, dateTo);
-        cacheData(symbol, stockData, today);
-        result[symbol] = stockData;
-
-        // Add delay of 1 second (1000ms) between requests
-        await delay(1000);
-      } catch (error) {
-        result[symbol] = { error: `Failed to fetch data for ${symbol}` };
-      }
-    }
+  // Check if data for this date is cached
+  const cachedData = getCachedData(today);
+  if (cachedData) {
+    return NextResponse.json(cachedData);
   }
 
-  const stockData = transformData(result);
-  return NextResponse.json(stockData);
+  // Define the symbols to fetch data for
+  const symbols = [
+    "^GSPC",
+    "^DJI",
+    "^IXIC",
+    "^RUT",
+    "^FTSE",
+    "^N225",
+    "^HSI",
+    "^STOXX50E",
+    "^VIX",
+  ];
+
+  try {
+    // Fetch data for all symbols one by one
+    const stockDataPromises = symbols.map(async (symbol) => {
+      console.log(`Fetching data for ${symbol} on ${today}`);
+      return fetchStockData(symbol);
+    });
+
+    // Wait for all the fetch requests to finish
+    const stockDataResults = await Promise.all(stockDataPromises);
+
+    // Combine the results for all symbols into one array
+    const combinedData = symbols.reduce((acc, symbol, index) => {
+      const data = stockDataResults[index];
+      acc[symbol] = data;
+      return acc;
+    }, {} as Record<string, any>);
+
+    // Cache the fetched data for the given date
+    cacheData(today, combinedData);
+
+    // Transform the data for the requested date
+    const transformedData = transformData(combinedData, today);
+    return NextResponse.json(transformedData);
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to fetch stock data" });
+  }
 }
+
 type Entry = {
   symbol: string;
   date: string;
@@ -98,50 +109,59 @@ type TransformedEntry = {
   }[];
 };
 
-function transformData(inputData: Record<string, Entry[]>): TransformedEntry[] {
-  const result: TransformedEntry[] = [];
+function transformData(
+  inputData: Record<string, Entry[]>,
+  requestedDate: string
+): Record<
+  string,
+  { currencies: { symbol: string; price: number; change: number | null }[] }
+> {
+  const result: Record<
+    string,
+    { currencies: { symbol: string; price: number; change: number | null }[] }
+  > = {};
 
-  for (const index in inputData) {
-    const data = inputData[index];
+  // Initialize the result for the requested date
+  const dateMap: {
+    [symbol: string]: { price: number; change: number | null };
+  } = {};
 
+  // Loop through all symbols and their respective data
+  for (const symbol in inputData) {
+    const data = inputData[symbol];
+
+    // Sort the data by date in descending order
     const sortedData = data.sort((a, b) => (a.date > b.date ? -1 : 1));
 
-    let dateMap: Record<
-      string,
-      { [symbol: string]: { price: number; change: number | null } }
-    > = {};
+    // Process the sorted data for the requested date
+    for (const entry of sortedData) {
+      const { date, price } = entry;
 
-    for (let i = 0; i < sortedData.length; i++) {
-      const entry = sortedData[i];
-      const { date, symbol, price } = entry;
+      // Only process the requested date
+      if (date === requestedDate) {
+        const prevEntry = sortedData.find(
+          (e) => e.symbol === symbol && e.date === date
+        );
+        const prevPrice = prevEntry ? prevEntry.price : null;
 
-      if (!dateMap[date]) {
-        dateMap[date] = {};
+        // Store the price and change for each symbol
+        dateMap[symbol] = {
+          price,
+          change:
+            prevPrice !== null ? ((price - prevPrice) / prevPrice) * 100 : null,
+        };
       }
-
-      const prevEntry = i > 0 ? sortedData[i - 1] : null;
-      const prevPrice = prevEntry?.symbol === symbol ? prevEntry.price : null;
-
-      dateMap[date][symbol] = {
-        price,
-        change:
-          prevPrice !== null ? ((price - prevPrice) / prevPrice) * 100 : null,
-      };
-    }
-
-    for (const date in dateMap) {
-      const currencies = Object.keys(dateMap[date]).map((symbol) => ({
-        symbol,
-        price: dateMap[date][symbol].price,
-        change: dateMap[date][symbol].change,
-      }));
-
-      result.push({
-        date,
-        currencies,
-      });
     }
   }
+
+  // Consolidate the result into the format with requested date as the key
+  result[requestedDate] = {
+    currencies: Object.keys(dateMap).map((symbol) => ({
+      symbol,
+      price: dateMap[symbol].price,
+      change: dateMap[symbol].change,
+    })),
+  };
 
   return result;
 }
