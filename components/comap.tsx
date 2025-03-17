@@ -20,7 +20,6 @@ const Comap: React.FC<HeatmapProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<Asset[] | null>(null);
 
-  console.log("Data:", data);
   useEffect(() => {
     setLoading(true);
 

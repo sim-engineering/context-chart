@@ -67,7 +67,6 @@ const IndecesBar = ({ date, changeDays }) => {
       try {
         const response = await fetch(`/api/index?date=${date}`);
         const data = await response.json();
-        console.log("Hello: ", data);
         setIndexData(data);
       } catch (error) {
         console.error("Error fetching index data:", error);

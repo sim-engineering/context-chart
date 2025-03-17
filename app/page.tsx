@@ -130,7 +130,6 @@ export default function Home() {
         const cryptoData = await cryptoResponse.json();
         const stocksData = await stocksResponse.json();
 
-        console.log(cryptoData, stocksData);
         const allDates = new Set([
           ...Object.keys(cryptoData),
           ...Object.keys(stocksData),
@@ -146,10 +145,7 @@ export default function Home() {
           combinedData[date] = { currencies: mergedCurrencies };
         });
 
-        console.log("HAHA:", combinedData);
         setMergedData(combinedData);
-
-        console.log("Merged Data: ", combinedData);
       } catch (error) {
         console.error("Error fetching data: ", error);
       }

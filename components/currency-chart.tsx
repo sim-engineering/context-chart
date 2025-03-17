@@ -15,32 +15,16 @@ import {
 import { format, parseISO } from "date-fns";
 import { Info, TrendingDown, TrendingUp, Check, X } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
 
-// Define the data structure
 export type CurrencyData = {
   symbol: string;
   price: number;
@@ -54,7 +38,6 @@ export type CurrencyChartData = {
   };
 };
 
-// Define news event type
 export type NewsEvent = {
   date: string;
   title: string;
@@ -73,27 +56,22 @@ interface CurrencyChartProps {
   defaultTimeframe?: string;
 }
 
-// Currency colors for consistent display
 const CURRENCY_COLORS: Record<string, string> = {
   BTC: "#F7931A", // Bitcoin orange
   ETH: "#627EEA", // Ethereum blue
   DOGE: "#C3A634", // Dogecoin gold
   PEPE: "#00CC00", // Pepe green
-  // Add more currencies as needed
 };
 
-// Get color for a currency, with fallbacks
 const getCurrencyColor = (symbol: string): string => {
   return (
     CURRENCY_COLORS[symbol] ||
-    // If not in our map, generate a color based on the symbol
     `hsl(${
       symbol.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360
     }, 70%, 50%)`
   );
 };
 
-// Update the CustomTooltip component to use the new data structure:
 const CustomTooltip = ({
   active,
   payload,
@@ -104,39 +82,41 @@ const CustomTooltip = ({
     const date = format(new Date(label as string), "MMM d, yyyy");
 
     return (
-      <div className="p-3 rounded-md shadow-lg border bg-slate-900 border-slate-800 text-slate-200">
-        <p className="font-medium">{date}</p>
-        <div className="mt-2 space-y-2">
+      <div className="p-2 rounded-md shadow-lg border bg-slate-900 border-slate-800 text-slate-200 w-64 max-h-80 overflow-auto sm:w-72 sm:max-h-96">
+        <p className="text-xs font-medium">{date}</p>
+        <div className="mt-2 grid grid-rows-3 grid-cols-5 gap-2 overflow-auto">
           {payload.map((entry, index) => {
             const currencySymbol = entry.dataKey as string;
             if (!currencySymbol || !visibleCurrencies.includes(currencySymbol))
               return null;
 
-            const currencyData = entry.payload[`${currencySymbol}`];
+            const currencyData = entry.payload[`${currencySymbol}_data`];
             if (!currencyData) return null;
 
             return (
               <div
                 key={`tooltip-${index}`}
-                className="border-t pt-2 first:border-t-0 first:pt-0"
+                className="border-t pt-1 first:border-t-0 first:pt-0"
               >
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-1 mb-1">
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className="w-2 h-2 rounded-full sm:w-3 sm:h-3"
                     style={{
                       backgroundColor: getCurrencyColor(currencySymbol),
                     }}
                   />
-                  <span className="font-medium">{currencySymbol}</span>
+                  <span className="text-xs sm:text-sm font-medium">
+                    {currencySymbol}
+                  </span>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm flex items-center justify-between gap-4">
+                <div className="space-y-0.5 sm:space-y-1">
+                  <p className="text-[10px] sm:text-xs flex items-center justify-between gap-1 sm:gap-2">
                     <span className="text-slate-400">Price:</span>
                     <span className="font-medium">
                       ${currencyData.price.toFixed(2)}
                     </span>
                   </p>
-                  <p className="text-sm flex items-center justify-between gap-4">
+                  <p className="text-[10px] sm:text-xs flex items-center justify-between gap-1 sm:gap-2">
                     <span className="text-slate-400">24h:</span>
                     <span
                       className={cn("font-medium flex items-center", {
@@ -145,16 +125,11 @@ const CustomTooltip = ({
                         "text-slate-500": currencyData.change_1d === 0,
                       })}
                     >
-                      {currencyData.change_1d > 0 ? (
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                      ) : currencyData.change_1d < 0 ? (
-                        <TrendingDown className="h-3 w-3 mr-1" />
-                      ) : null}
                       {currencyData.change_1d > 0 ? "+" : ""}
                       {currencyData.change_1d.toFixed(2)}%
                     </span>
                   </p>
-                  <p className="text-sm flex items-center justify-between gap-4">
+                  <p className="text-[10px] sm:text-xs flex items-center justify-between gap-1 sm:gap-2">
                     <span className="text-slate-400">7d:</span>
                     <span
                       className={cn("font-medium flex items-center", {
@@ -163,11 +138,6 @@ const CustomTooltip = ({
                         "text-slate-500": currencyData.change_7d === 0,
                       })}
                     >
-                      {currencyData.change_7d > 0 ? (
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                      ) : currencyData.change_7d < 0 ? (
-                        <TrendingDown className="h-3 w-3 mr-1" />
-                      ) : null}
                       {currencyData.change_7d > 0 ? "+" : ""}
                       {currencyData.change_7d.toFixed(2)}%
                     </span>
@@ -251,29 +221,70 @@ const NewsBubble = ({ event }: { event: NewsEvent }) => {
   );
 };
 
+const CurrencyLegend = ({
+  currencies,
+  visibleCurrencies,
+  toggleCurrency,
+}: {
+  currencies: string[];
+  visibleCurrencies: string[];
+  toggleCurrency: (currency: string) => void;
+}) => {
+  return (
+    <div className="flex flex-wrap gap-3 mt-2">
+      {currencies.map((currency) => (
+        <div
+          key={currency}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors ${
+            visibleCurrencies.includes(currency)
+              ? "bg-slate-800 hover:bg-slate-700"
+              : "bg-slate-900/50 hover:bg-slate-800/50 opacity-60"
+          }`}
+          onClick={() => toggleCurrency(currency)}
+        >
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: getCurrencyColor(currency) }}
+          />
+          <span className="font-medium text-sm">{currency}</span>
+          {visibleCurrencies.includes(currency) ? (
+            <Check className="h-3.5 w-3.5 text-green-500" />
+          ) : (
+            <X className="h-3.5 w-3.5 text-slate-400" />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function CurrencyChart({
   data,
   newsEvents = [],
+  title = "Currency Performance",
+  description = "Price chart with overlaid news events",
   defaultCurrencies = [],
   defaultTimeframe = "1M",
 }: CurrencyChartProps) {
   const isDarkMode = true;
+  const [activeTimeframe, setActiveTimeframe] = useState(defaultTimeframe);
   const [mounted, setMounted] = useState(false);
 
-  // Get all  currencies from the data
+  // Get all available currencies from the data
   const availableCurrencies = useMemo(() => {
     const firstDate = Object.keys(data)[0];
     if (!firstDate) return [];
-
     return data[firstDate]?.currencies.map((c) => c.symbol) || [];
   }, [data]);
 
+  // Set visible currencies with defaults or all if none provided
   const [visibleCurrencies, setVisibleCurrencies] = useState<string[]>(
     defaultCurrencies.length > 0
       ? defaultCurrencies.filter((c) => availableCurrencies.includes(c))
       : availableCurrencies
   );
 
+  // Replace the entire processedData useMemo with this updated version:
   const processedData = useMemo(() => {
     return Object.entries(data)
       .map(([date, dayData]) => {
@@ -284,7 +295,7 @@ export default function CurrencyChart({
         dayData.currencies.forEach((currency) => {
           result[currency.symbol] = currency.price;
           // Store the full currency data for tooltip access
-          result[`${currency.symbol}`] = {
+          result[`${currency.symbol}_data`] = {
             price: currency.price,
             change_1d: currency.change_1d,
             change_7d: currency.change_7d,
@@ -294,39 +305,53 @@ export default function CurrencyChart({
         // Check if there's a news event for this date
         result.hasNews = newsEvents.some((event) => event.date === date);
 
-        console.log("Result here;", result);
         return result;
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [data, newsEvents]);
 
+  // Toggle currency visibility
+  const toggleCurrency = (currency: string) => {
+    setVisibleCurrencies((prev) =>
+      prev.includes(currency)
+        ? prev.filter((c) => c !== currency)
+        : [...prev, currency]
+    );
+  };
+
+  // Update the useEffect to always set dark mode:
   useEffect(() => {
     setMounted(true);
     document.documentElement.classList.add("dark");
   }, []);
 
+  // Only render content after mounting to avoid hydration mismatch
   if (!mounted) {
     return <div className="w-full h-[600px] bg-background animate-pulse"></div>;
   }
 
+  // Format date for display
   const formatDate = (timestamp: string) => {
     return format(new Date(timestamp), "MMM d");
   };
 
+  // Update the calculate min and max for better axis scaling:
+  // Calculate min and max for better axis scaling across all visible currencies
   const allPrices = processedData.flatMap((d) =>
     visibleCurrencies
       .filter((currency) => d[currency] !== undefined)
       .map((currency) => d[currency])
   );
 
-  console.log("All Price: ", allPrices);
   const minPrice = Math.floor(Math.min(...allPrices) * 0.98) || 0;
   const maxPrice = Math.ceil(Math.max(...allPrices) * 1.02) || 100;
 
+  // Update the Card component to always use dark theme:
   return (
     <Card className="w-full border-0 bg-slate-950 text-slate-200 shadow-xl shadow-slate-900/20">
+      <CardHeader className="pb-2"></CardHeader>
       <CardContent>
-        <div className="h-[250px] relative">
+        <div className="h-[450px] relative">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={processedData}
@@ -368,6 +393,9 @@ export default function CurrencyChart({
                 }}
               />
 
+              {/* Update the chart rendering to fix the lines: */}
+              {/* In the ComposedChart section, update the Line components: */}
+              {/* Render a line for each visible currency */}
               {visibleCurrencies.map((currency) => (
                 <Line
                   key={currency}
@@ -457,7 +485,7 @@ export default function CurrencyChart({
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-slate-300">
             {visibleCurrencies.map((currency) => {
               const latestData =
-                processedData[processedData.length - 1][`${currency}`];
+                processedData[processedData.length - 1][`${currency}_data`];
               if (!latestData) return null;
 
               return (
