@@ -170,7 +170,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col bg-background dark">
+    <div className="flex container flex-col bg-background dark">
       <link rel="icon" href="/favicon.ico" sizes="any" />
 
       <Header />
