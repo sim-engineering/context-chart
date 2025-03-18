@@ -316,9 +316,8 @@ export default function CurrencyChart({
   }, [data]);
 
   // Set visible currencies with defaults or all if none provided
-  const [visibleCurrencies, setVisibleCurrencies] = useState<string[]>(
-    defaultCurrencies.filter((c) => availableCurrencies.includes(c))
-  );
+  const [visibleCurrencies, setVisibleCurrencies] =
+    useState<string[]>(availableCurrencies);
 
   // Replace the entire processedData useMemo with this updated version:
   const processedData = useMemo(() => {
