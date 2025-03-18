@@ -22,7 +22,6 @@ import { Asset } from "@/types/types";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Heatmap from "@/components/heatmap";
-import Stockmap from "@/components/stockmap";
 import CurrencyChart from "@/components/currency-chart";
 import CurrencyBar from "@/components/currencies";
 import IndecesBar from "@/components/indexes";
@@ -175,7 +174,7 @@ export default function Home() {
       <link rel="icon" href="/favicon.ico" sizes="any" />
 
       <Header />
-      <main className="flex-1 container mx-auto px-1 py-6">
+      <main className="flex-1 mx-auto px-1 py-6">
         <Card className="border-border/40 bg-card/30 backdrop-blur-sm">
           <CardHeader>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -296,8 +295,8 @@ export default function Home() {
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-6 w-full h-full">
-              <div className="flex-1">
+            <div className="flex flex-wrap w-full h-full md:flex-nowrap">
+              <div className="w-full md:w-1/2">
                 <Heatmap
                   onAssetClick={handleAssetClick}
                   type="Crypto"
@@ -305,24 +304,23 @@ export default function Home() {
                   changeDays={change}
                   assetType="crypto"
                 />
-              </div>
-              <div className="flex-1">
                 <Heatmap
                   onAssetClick={handleAssetClick}
-                  type="Crypto"
+                  type="Stocks"
                   date={daysAgoToDate(timeRange)}
                   changeDays={change}
                   assetType="stocks"
                 />
               </div>
-            </div>
-
-            <div className="p-4 bg-slate-950 ">
-              <CurrencyChart
-                data={mergedData}
-                newsEvents={sampleNewsEvents}
-                defaultCurrencies={availableCrypto.concat(availableCurrencies)}
-              />
+              <div className="w-full md:w-1/2 p-4 bg-slate-950">
+                <CurrencyChart
+                  data={mergedData}
+                  newsEvents={sampleNewsEvents}
+                  defaultCurrencies={availableCrypto.concat(
+                    availableCurrencies
+                  )}
+                />
+              </div>
             </div>
 
             {showCurrency ? (
