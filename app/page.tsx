@@ -287,9 +287,9 @@ export default function Home() {
               </div>
               <Slider
                 value={[debouncedTimeRange]}
-                min={2}
+                min={5}
                 max={365}
-                step={1}
+                step={6}
                 onValueChange={handleSliderChange}
                 className="w-full"
               />
