@@ -12,9 +12,9 @@ const Slider = React.forwardRef<
   const [sliderValue, setSliderValue] = React.useState(value ? value[0] : 0);
 
   const getDateFromDays = (days: number): string => {
-    const baseDate = new Date(); // Start from today
-    baseDate.setDate(baseDate.getDate() + days); // Add the days
-    return format(baseDate, "yyyy-MM-dd"); // Format the date
+    const baseDate = new Date();
+    baseDate.setDate(baseDate.getDate() + days);
+    return format(baseDate, "yyyy-MM-dd");
   };
 
   const handleValueChange = (value: number[]) => {
@@ -68,7 +68,7 @@ const Slider = React.forwardRef<
             <line x1="8" x2="8" y1="2" y2="6"></line>
             <line x1="3" x2="21" y1="10" y2="10"></line>
           </svg>
-          {getDateFromDays(365 - sliderValue)}
+          {getDateFromDays(-sliderValue)}
         </div>
         <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-indigo-500 rotate-45"></div>
       </div>
