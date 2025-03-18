@@ -296,7 +296,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap w-full h-full md:flex-nowrap">
-              <div className="w-full md:w-1/3">
+              <div className="w-full md:w-1/2">
                 <Heatmap
                   onAssetClick={handleAssetClick}
                   type="Crypto"
@@ -304,23 +304,22 @@ export default function Home() {
                   changeDays={change}
                   assetType="crypto"
                 />
-              </div>
-              <div className="w-full md:w-1/3 p-4 bg-slate-950">
-                <CurrencyChart
-                  data={mergedData}
-                  newsEvents={sampleNewsEvents}
-                  defaultCurrencies={availableCrypto.concat(
-                    availableCurrencies
-                  )}
-                />
-              </div>
-              <div className="w-full md:w-1/3 p-4 bg-slate-950">
                 <Heatmap
                   onAssetClick={handleAssetClick}
                   type="Stocks"
                   date={daysAgoToDate(timeRange)}
                   changeDays={change}
                   assetType="stocks"
+                />
+              </div>
+
+              <div className="w-full md:w-1/2 p-4 bg-slate-950">
+                <CurrencyChart
+                  data={mergedData}
+                  newsEvents={sampleNewsEvents}
+                  defaultCurrencies={availableCrypto.concat(
+                    availableCurrencies
+                  )}
                 />
               </div>
             </div>
