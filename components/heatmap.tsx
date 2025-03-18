@@ -9,13 +9,15 @@ interface HeatmapProps {
   type?: string | null;
   date: string | null;
   changeDays: string;
+  assetType: "stocks" | "crypto"; // New prop to determine which API to call
 }
 
-const Heatmap: React.FC<HeatmapProps> = ({
+const AssetHeatmap: React.FC<HeatmapProps> = ({
   onAssetClick,
   type = null,
   date = null,
   changeDays = "1d",
+  assetType = "crypto", // Default to crypto for backward compatibility
 }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<Asset[] | null>(null);
@@ -24,7 +26,10 @@ const Heatmap: React.FC<HeatmapProps> = ({
     setLoading(true);
 
     const fetchData = () => {
-      fetch(`/api/crypto?date=${date}`)
+      // Use the assetType prop to determine which API endpoint to call
+      const endpoint = `/api/${assetType}?date=${date}`;
+
+      fetch(endpoint)
         .then((res) => {
           if (!res.ok) {
             setData([]);
@@ -38,12 +43,12 @@ const Heatmap: React.FC<HeatmapProps> = ({
         })
         .catch((err) => {
           setLoading(false);
-          console.error(`Error fetching index data`, err);
+          console.error(`Error fetching ${assetType} data`, err);
         });
     };
 
     fetchData();
-  }, [date]);
+  }, [date, assetType]); // Added assetType as a dependency
 
   if (loading) {
     return (
@@ -103,7 +108,9 @@ const Heatmap: React.FC<HeatmapProps> = ({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg sm:text-[15px] truncate block">{type}</h1>
+      <h1 className="text-lg sm:text-[15px] truncate block">
+        {type || (assetType === "crypto" ? "Cryptocurrencies" : "Stocks")}
+      </h1>
       <div className="grid grid-cols-6 gap-1 auto-rows-[20px] sm:scale-100 md:scale-20 lg:grid-cols-12 lg:gap-2 lg:auto-rows-[60px] grid-auto-flow-dense">
         {data &&
         data[date] &&
@@ -191,7 +198,7 @@ const Heatmap: React.FC<HeatmapProps> = ({
         ) : (
           <div className="w-80 h-full">
             <p className="text-sm text-muted-foreground w-full">
-              No assets data for {date}
+              No {assetType} data for {date}
             </p>
           </div>
         )}
@@ -200,4 +207,4 @@ const Heatmap: React.FC<HeatmapProps> = ({
   );
 };
 
-export default Heatmap;
+export default AssetHeatmap;

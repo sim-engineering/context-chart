@@ -303,14 +303,16 @@ export default function Home() {
                   type="Crypto"
                   date={daysAgoToDate(timeRange)}
                   changeDays={change}
+                  assetType="crypto"
                 />
               </div>
               <div className="flex-1">
-                <Stockmap
+                <Heatmap
                   onAssetClick={handleAssetClick}
-                  type="Stocks"
+                  type="Crypto"
                   date={daysAgoToDate(timeRange)}
                   changeDays={change}
+                  assetType="stocks"
                 />
               </div>
             </div>
