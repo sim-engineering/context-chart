@@ -106,7 +106,7 @@ const CustomTooltip = ({
     return (
       <div className="p-3 rounded-md shadow-lg border bg-slate-900 border-slate-800 text-slate-200">
         <p className="font-medium">{date}</p>
-        <div className="mt-2 space-y-2">
+        <div className="mt-2 grid grid-cols-4 gap-4">
           {payload.map((entry, index) => {
             const currencySymbol = entry.dataKey as string;
             if (!currencySymbol || !visibleCurrencies.includes(currencySymbol))
