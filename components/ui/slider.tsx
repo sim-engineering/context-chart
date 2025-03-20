@@ -1,82 +1,71 @@
 "use client";
 
-import * as React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import * as SliderPrimitive from "@radix-ui/react-slider";
-import { format } from "date-fns"; // Import date-fns to format the date
-import { cn } from "@/lib/utils";
+import { format, parseISO, differenceInDays, addDays } from "date-fns";
 
-const Slider = React.forwardRef<
-  React.ElementRef<typeof SliderPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
->(({ className, value, onValueChange, ...props }, ref) => {
-  const [sliderValue, setSliderValue] = React.useState(value ? value[0] : 0);
+const DateSlider = ({
+  minDate,
+  maxDate,
+  onDateChange,
+}: {
+  minDate: string;
+  maxDate: string;
+  onDateChange: (date: string) => void;
+}) => {
+  const min = parseISO(minDate);
+  const max = parseISO(maxDate);
 
-  const getDateFromDays = (days: number): string => {
-    const baseDate = new Date();
-    baseDate.setDate(baseDate.getDate() + days);
-    return format(baseDate, "yyyy-MM-dd");
+  const totalDays = differenceInDays(max, min);
+
+  const [sliderValue, setSliderValue] = useState(totalDays);
+  const [debouncedValue, setDebouncedValue] = useState(totalDays);
+
+  const getDateFromSlider = (daysOffset: number): string => {
+    return format(addDays(min, daysOffset), "yyyy-MM-dd");
   };
 
-  const handleValueChange = (value: number[]) => {
-    const newValue = value[0];
-    console.log(value[0]);
-    setSliderValue(newValue);
-    onValueChange && onValueChange(value);
+  const handleSliderChange = (value: number[]) => {
+    setSliderValue(value[0]);
   };
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(sliderValue);
+      onDateChange(getDateFromSlider(sliderValue));
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [sliderValue]);
 
   return (
-    <div className="relative pt-10">
+    <div className="relative w-full pt-8">
       <SliderPrimitive.Root
-        ref={ref}
-        className={cn(
-          "relative flex w-full touch-none select-none items-center",
-          className
-        )}
-        {...props}
-        dir="rtl"
+        className="relative flex w-full touch-none select-none items-center"
         value={[sliderValue]}
-        onValueChange={handleValueChange}
+        min={0}
+        max={totalDays}
+        step={1}
+        onValueChange={handleSliderChange}
       >
-        <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
-          <SliderPrimitive.Range className="absolute h-full bg-primary" />
+        <SliderPrimitive.Track className="relative h-2 w-full bg-gray-300 rounded-full">
+          <SliderPrimitive.Range className="absolute h-full bg-blue-500" />
         </SliderPrimitive.Track>
-        <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+
+        <SliderPrimitive.Thumb className="block h-5 w-5 bg-blue-500 rounded-full border-2 border-white shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </SliderPrimitive.Root>
 
       <div
-        className="absolute bottom-6 mt-0 px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-medium rounded-lg shadow-md transform -translate-x-1/2 backdrop-blur-sm border border-white/10 transition-all duration-200"
+        className="absolute bottom-6 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md shadow-md"
         style={{
-          right: `calc(${(sliderValue / 365) * 100}%)`,
-          left: "auto",
-          transform: "translateX(50%)",
+          left: `calc(${(sliderValue / totalDays) * 100}%)`,
+          transform: "translateX(-50%)",
         }}
       >
-        <div className="flex items-center gap-1.5">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="opacity-80"
-          >
-            <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
-            <line x1="16" x2="16" y1="2" y2="6"></line>
-            <line x1="8" x2="8" y1="2" y2="6"></line>
-            <line x1="3" x2="21" y1="10" y2="10"></line>
-          </svg>
-          {getDateFromDays(-sliderValue)}
-        </div>
-        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-indigo-500 rotate-45"></div>
+        {getDateFromSlider(debouncedValue)}
       </div>
     </div>
   );
-});
+};
 
-Slider.displayName = SliderPrimitive.Root.displayName;
-
-export { Slider };
+export default DateSlider;

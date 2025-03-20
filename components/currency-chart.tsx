@@ -184,74 +184,6 @@ const CustomTooltip = ({
   return null;
 };
 
-// Custom news bubble component
-const NewsBubble = ({ event }: { event: NewsEvent }) => {
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          className={`h-8 w-8 rounded-full border-2 shadow-lg transition-all duration-200 hover:scale-110 ${
-            event.sentiment === "positive"
-              ? "border-emerald-500 bg-emerald-950/70 text-emerald-400 hover:bg-emerald-900/90"
-              : event.sentiment === "negative"
-              ? "border-rose-500 bg-rose-950/70 text-rose-400 hover:bg-rose-900/90"
-              : "border-blue-500 bg-blue-950/70 text-blue-400 hover:bg-blue-900/90"
-          }`}
-        >
-          <Info className="h-4 w-4" />
-          <span className="sr-only">News event</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-80 p-0 overflow-hidden bg-slate-900 border-slate-800 text-slate-200"
-        sideOffset={5}
-      >
-        <div
-          className={`p-1 text-xs ${
-            event.sentiment === "positive"
-              ? "bg-emerald-900 text-emerald-100"
-              : event.sentiment === "negative"
-              ? "bg-rose-900 text-rose-100"
-              : "bg-blue-900 text-blue-100"
-          }`}
-        >
-          {event.source} • {format(parseISO(event.date), "MMM d, yyyy")}
-        </div>
-        <div className="space-y-2 p-4">
-          <h4 className="font-medium text-base">{event.title}</h4>
-          <p className="text-sm text-slate-400">{event.content}</p>
-          <div className="flex items-center justify-between text-xs pt-2">
-            <Badge variant="outline" className="font-normal">
-              Impact: {event.impact}/10
-            </Badge>
-            <Badge
-              variant={
-                event.sentiment === "positive"
-                  ? "outline"
-                  : event.sentiment === "negative"
-                  ? "destructive"
-                  : "outline"
-              }
-              className={`font-medium ${
-                event.sentiment === "positive"
-                  ? "border-emerald-500 text-emerald-400"
-                  : event.sentiment === "neutral"
-                  ? "border-blue-500 text-blue-400"
-                  : ""
-              }`}
-            >
-              {event.sentiment.charAt(0).toUpperCase() +
-                event.sentiment.slice(1)}
-            </Badge>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-};
-
 // Custom legend for currencies
 const CurrencyLegend = ({
   currencies,
@@ -293,17 +225,8 @@ const CurrencyLegend = ({
 export default function CurrencyChart({
   data,
   newsEvents = [],
-  title = "Currency Performance",
-  description = "Price chart with overlaid news events",
-  defaultCurrencies = [],
   defaultTimeframe = "1M",
 }: CurrencyChartProps) {
-  // Remove the isDarkMode state and related code, replace with a constant:
-  // Remove these lines:
-  // ...
-  // And the toggleDarkMode function
-
-  // Add this constant at the top of the component:
   const isDarkMode = true;
   const [activeTimeframe, setActiveTimeframe] = useState(defaultTimeframe);
   const [mounted, setMounted] = useState(false);
@@ -434,9 +357,6 @@ export default function CurrencyChart({
                 }}
               />
 
-              {/* Update the chart rendering to fix the lines: */}
-              {/* In the ComposedChart section, update the Line components: */}
-              {/* Render a line for each visible currency */}
               {visibleCurrencies.map((currency) => (
                 <Line
                   key={currency}
@@ -467,122 +387,7 @@ export default function CurrencyChart({
               ))}
             </ComposedChart>
           </ResponsiveContainer>
-
-          {/* News event markers directly on the chart */}
-          <div className="absolute inset-0 pointer-events-none">
-            {/* Update the news event markers to use the simplified NewsBubble: */}
-            {newsEvents.map((event, index) => {
-              // Find the corresponding data point
-              const dataPointIndex = processedData.findIndex(
-                (d) => d.date === event.date
-              );
-              if (dataPointIndex === -1) return null;
-
-              // Calculate position based on index
-              const xPercent =
-                (dataPointIndex / (processedData.length - 1)) * 100;
-
-              return (
-                <div
-                  key={`chart-news-${index}`}
-                  className="absolute pointer-events-auto"
-                  style={{
-                    left: `${xPercent}%`,
-                    bottom: "0px",
-                    transform: "translateX(-50%)",
-                  }}
-                >
-                  <NewsBubble event={event} />
-                </div>
-              );
-            })}
-          </div>
         </div>
-
-        {/* Legend */}
-        {/* Update the news event legend to always use dark theme: */}
-        {newsEvents.length > 0 && (
-          <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-slate-300">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full border-2 border-emerald-500 bg-emerald-950"></div>
-              <span>Positive News</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full border-2 border-rose-500 bg-rose-950"></div>
-              <span>Negative News</span>
-            </div>
-            {newsEvents.some((e) => e.sentiment === "neutral") && (
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full border-2 border-blue-500 bg-blue-950"></div>
-                <span>Neutral News</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Current stats grid */}
-        {processedData.length > 0 && visibleCurrencies.length > 0 && (
-          // Update the stats grid to always use dark theme:
-          <div className="mt-6 grid grid-rows-3 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-slate-300">
-            {visibleCurrencies.map((currency) => {
-              const latestData =
-                processedData[processedData.length - 1][`${currency}_data`];
-              if (!latestData) return null;
-
-              return (
-                <div
-                  key={`stats-${currency}`}
-                  className="p-4 rounded-lg bg-slate-900 border-l-4"
-                  style={{ borderLeftColor: getCurrencyColor(currency) }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      {currency}
-                    </div>
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: getCurrencyColor(currency) }}
-                    />
-                  </div>
-                  <div className="text-2xl font-bold mt-1">
-                    ${latestData.price.toFixed(2)}
-                  </div>
-                  <div className="flex items-center justify-between mt-2 text-sm">
-                    <div
-                      className={`flex items-center ${
-                        latestData.change_1d > 0
-                          ? "text-emerald-500"
-                          : latestData.change_1d < 0
-                          ? "text-rose-500"
-                          : ""
-                      }`}
-                    >
-                      {latestData.change_1d > 0 ? (
-                        <TrendingUp className="h-4 w-4 mr-1" />
-                      ) : latestData.change_1d < 0 ? (
-                        <TrendingDown className="h-4 w-4 mr-1" />
-                      ) : null}
-                      {latestData.change_1d > 0 ? "+" : ""}
-                      {latestData.change_1d.toFixed(2)}% (24h)
-                    </div>
-                    <div
-                      className={`flex items-center ${
-                        latestData.change_7d > 0
-                          ? "text-emerald-500"
-                          : latestData.change_7d < 0
-                          ? "text-rose-500"
-                          : ""
-                      }`}
-                    >
-                      {latestData.change_7d > 0 ? "+" : ""}
-                      {latestData.change_7d.toFixed(2)}% (7d)
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </CardContent>
     </Card>
   );

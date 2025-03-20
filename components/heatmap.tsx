@@ -173,7 +173,7 @@ const AssetHeatmap: React.FC<HeatmapProps> = ({
   }
 
   return (
-    <div className="space-y-3 bg-slate-900 rounded-lg p-4 shadow-xl">
+    <div className="space-y-3 bg-slate-900 rounded-lg p-4 shadow-xl scale-[0.9]">
       <div className="flex justify-between items-center border-b border-slate-700 pb-3">
         <h1 className="text-lg font-bold text-white">
           {type ||
