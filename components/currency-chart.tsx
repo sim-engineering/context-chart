@@ -184,44 +184,6 @@ const CustomTooltip = ({
   return null;
 };
 
-// Custom legend for currencies
-const CurrencyLegend = ({
-  currencies,
-  visibleCurrencies,
-  toggleCurrency,
-}: {
-  currencies: string[];
-  visibleCurrencies: string[];
-  toggleCurrency: (currency: string) => void;
-}) => {
-  return (
-    <div className="flex flex-wrap gap-3 mt-2">
-      {currencies.map((currency) => (
-        <div
-          key={currency}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer transition-colors ${
-            visibleCurrencies.includes(currency)
-              ? "bg-slate-800 hover:bg-slate-700"
-              : "bg-slate-900/50 hover:bg-slate-800/50 opacity-60"
-          }`}
-          onClick={() => toggleCurrency(currency)}
-        >
-          <div
-            className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: getCurrencyColor(currency) }}
-          />
-          <span className="font-medium text-sm">{currency}</span>
-          {visibleCurrencies.includes(currency) ? (
-            <Check className="h-3.5 w-3.5 text-green-500" />
-          ) : (
-            <X className="h-3.5 w-3.5 text-slate-400" />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-};
-
 export default function CurrencyChart({
   data,
   newsEvents = [],
@@ -307,13 +269,6 @@ export default function CurrencyChart({
   // Update the Card component to always use dark theme:
   return (
     <Card className="w-full border-0 bg-slate-950 text-slate-200 shadow-xl shadow-slate-900/20">
-      <CardHeader className="pb-2">
-        <CurrencyLegend
-          currencies={availableCurrencies}
-          visibleCurrencies={visibleCurrencies}
-          toggleCurrency={toggleCurrency}
-        />
-      </CardHeader>
       <CardContent>
         <div className="h-[450px] relative">
           <ResponsiveContainer width="100%" height="100%">
