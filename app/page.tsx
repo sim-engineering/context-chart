@@ -35,20 +35,18 @@ export default function Home() {
   >({});
 
   const [dateFrom, setDateFrom] = useState<string>(
-    searchParams.get("dateFrom") || formatDate(sevenDaysAgo)
+    searchParams?.get("dateFrom") || formatDate(sevenDaysAgo)
   );
   const [dateTo, setDateTo] = useState<string>(
-    searchParams.get("dateTo") || formatDate(today)
+    searchParams?.get("dateTo") || formatDate(today)
   );
   const [selectedDate, setSelectedDate] = useState(formatDate(today));
 
-  // Track URL updates separately to avoid render-time updates
   const [pendingUrlUpdate, setPendingUrlUpdate] = useState<Record<
     string,
     string | null
   > | null>(null);
 
-  // Memoized formatted dates to avoid repeated calculations
   const formattedToday = useMemo(() => format(today, "yyyy-MM-dd"), [today]);
   const formattedSevenDaysAgo = useMemo(
     () => format(sevenDaysAgo, "yyyy-MM-dd"),
@@ -70,7 +68,6 @@ export default function Home() {
     [today]
   );
 
-  // This function now queues URL updates instead of performing them directly
   const queueUrlUpdate = useCallback(
     (params: Record<string, string | null>) => {
       setPendingUrlUpdate(params);
@@ -78,7 +75,6 @@ export default function Home() {
     []
   );
 
-  // Process URL updates in a separate effect to avoid render-time router updates
   useEffect(() => {
     if (pendingUrlUpdate === null) return;
 
@@ -95,11 +91,9 @@ export default function Home() {
     const urlWithCommas = `?${newParams.toString().replace(/%2C/g, ",")}`;
     router.push(urlWithCommas, { scroll: false });
 
-    // Clear the pending update after processing
     setPendingUrlUpdate(null);
   }, [pendingUrlUpdate, router, searchParams]);
 
-  // Fetch tickers data only once on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -121,7 +115,6 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // Process URL parameters once tickers are loaded
   useEffect(() => {
     if (availableCurrencies.length === 0 && availableCrypto.length === 0)
       return;
@@ -141,14 +134,12 @@ export default function Home() {
       availableCrypto.includes(ticker)
     );
 
-    // Set default selections if none are valid from URL
     const stocksToSet = validStocks.length > 0 ? validStocks : [];
     const cryptoToSet = validCrypto.length > 0 ? validCrypto : [];
 
     const urlDateFrom = searchParams.get("dateFrom");
     const urlDateTo = searchParams.get("dateTo");
 
-    // Validate URL dates
     let validDateFrom =
       isValidDate(urlDateFrom) && isNotFutureDate(urlDateFrom)
         ? urlDateFrom
@@ -159,7 +150,6 @@ export default function Home() {
         ? urlDateTo
         : formattedToday;
 
-    // Ensure dateFrom is not later than dateTo
     if (new Date(validDateFrom) > new Date(validDateTo)) {
       validDateFrom = formattedSevenDaysAgo;
       validDateTo = formattedToday;
@@ -170,7 +160,6 @@ export default function Home() {
     setDateFrom(validDateFrom);
     setDateTo(validDateTo);
 
-    // Update URL if parameters needed correction
     if (
       validDateFrom !== urlDateFrom ||
       validDateTo !== urlDateTo ||
@@ -195,7 +184,6 @@ export default function Home() {
     queueUrlUpdate,
   ]);
 
-  // Update URL when date range changes
   useEffect(() => {
     queueUrlUpdate({
       dateFrom: dateFrom || null,
@@ -236,7 +224,12 @@ export default function Home() {
     [queueUrlUpdate]
   );
 
-  // Fetch price data when selection or date range changes
+  const stableSelectedCrypto = useMemo(() => selectedCrypto, [selectedCrypto]);
+  const stableSelectedCurrencies = useMemo(
+    () => selectedCurrencies,
+    [selectedCurrencies]
+  );
+
   useEffect(() => {
     if (
       (!selectedCrypto || selectedCrypto.length === 0) &&
@@ -251,33 +244,24 @@ export default function Home() {
 
     const fetchData = async () => {
       try {
-        const requests = [];
+        let cryptoData = {};
+        let stocksData = {};
 
-        if (selectedCrypto.length > 0) {
-          requests.push(
-            fetch(
-              `/api/prices/crypto?dateFrom=${dateFrom}&dateTo=${dateTo}&tickers=${selectedCrypto.join(
-                ","
-              )}`
-            ).then((res) => res.json())
-          );
-        } else {
-          requests.push(Promise.resolve({}));
+        if (stableSelectedCrypto.length > 0) {
+          cryptoData = await fetch(
+            `/api/prices/crypto?dateFrom=${dateFrom}&dateTo=${dateTo}&tickers=${selectedCrypto.join(
+              ","
+            )}`
+          ).then((res) => res.json());
         }
 
-        if (selectedCurrencies.length > 0) {
-          requests.push(
-            fetch(
-              `/api/prices/stocks?dateFrom=${dateFrom}&dateTo=${dateTo}&tickers=${selectedCurrencies.join(
-                ","
-              )}`
-            ).then((res) => res.json())
-          );
-        } else {
-          requests.push(Promise.resolve({}));
+        if (stableSelectedCurrencies.length > 0) {
+          stocksData = await fetch(
+            `/api/prices/stocks?dateFrom=${dateFrom}&dateTo=${dateTo}&tickers=${selectedCurrencies.join(
+              ","
+            )}`
+          ).then((res) => res.json());
         }
-
-        const [cryptoData, stocksData] = await Promise.all(requests);
 
         const allDates = new Set([
           ...Object.keys(cryptoData),
@@ -291,11 +275,11 @@ export default function Home() {
           const stockCurrencies = stocksData[date]?.currencies || [];
 
           const mergedCurrencies = [
-            ...cryptoCurrencies.map((currency: Asset) => ({
+            ...cryptoCurrencies.map((currency) => ({
               ...currency,
               type: "crypto",
             })),
-            ...stockCurrencies.map((currency: Asset) => ({
+            ...stockCurrencies.map((currency) => ({
               ...currency,
               type: "stock",
             })),
@@ -315,9 +299,8 @@ export default function Home() {
     };
 
     fetchData();
-  }, [dateFrom, dateTo, selectedCrypto, selectedCurrencies]);
+  }, [dateFrom, dateTo, stableSelectedCrypto, stableSelectedCurrencies]);
 
-  // Memoize selected ticker buttons to avoid unnecessary re-renders
   const stockButtons = useMemo(
     () => (
       <div className="flex flex-wrap gap-2">
@@ -360,7 +343,6 @@ export default function Home() {
     [availableCrypto, selectedCrypto, toggleSelection]
   );
 
-  // Combine available tickers for chart default props
   const allAvailableTickers = useMemo(
     () => [...availableCrypto, ...availableCurrencies],
     [availableCrypto, availableCurrencies]
@@ -398,11 +380,12 @@ export default function Home() {
                   <div className="flex flex-wrap gap-4">{cryptoButtons}</div>
                 </div>
               </div>
-              {/* <ShortenUrl /> */}
+
               {Object.keys(mergedData).length > 0 ? (
                 <div className="flex flex-col lg:flex-row">
                   <div className="w-full lg:w-1/2">
                     <CurrencyChart
+                      //@ts-ignore
                       data={mergedData}
                       newsEvents={[]}
                       defaultCurrencies={allAvailableTickers}
@@ -410,11 +393,11 @@ export default function Home() {
                   </div>
                   <div className="w-full lg:w-1/2">
                     <AssetHeatmap
-                      onAssetClick={() => {}} // Asset click handler
-                      initialDate={selectedDate} // Pass the current date
-                      changeDays="1d" // The change period (e.g., 1 day)
-                      assetType="crypto" // Set asset type (e.g., crypto or stocks)
-                      data={mergedData} // Pass the data for multiple days
+                      onAssetClick={() => {}}
+                      initialDate={selectedDate}
+                      changeDays="1d"
+                      assetType="crypto"
+                      data={mergedData}
                     />
                   </div>
                 </div>

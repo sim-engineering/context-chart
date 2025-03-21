@@ -12,40 +12,21 @@ import {
   Line,
   type TooltipProps,
 } from "recharts";
-import { format, parseISO } from "date-fns";
-import { Info, TrendingDown, TrendingUp, Check, X } from "lucide-react";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { TrendingDown, TrendingUp } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
 
-// Define the data structure
 export type CurrencyData = {
   symbol: string;
   price: number;
   change_1d: number;
   change_7d: number;
+  change_1m: number;
+  change_3m: number;
+  change_1y: number;
+  type: "stock" | "crypto";
+  volume: number;
 };
 
 export type CurrencyChartData = {
@@ -104,7 +85,10 @@ const CustomTooltip = ({
     const date = format(new Date(label as string), "MMM d, yyyy");
 
     return (
-      <div className="p-3 rounded-md shadow-lg border bg-slate-900 border-slate-800 text-slate-200">
+      <div
+        className="p-3 rounded-md shadow-lg border border-slate-800 text-slate-200"
+        style={{ backgroundColor: "rgba(31, 41, 55, 0.7)" }} // 50% transparent slate color
+      >
         <p className="font-medium">{date}</p>
         <div className="mt-2 grid grid-cols-4 gap-4">
           {payload.map((entry, index) => {
@@ -187,38 +171,34 @@ const CustomTooltip = ({
 export default function CurrencyChart({
   data,
   newsEvents = [],
-  defaultTimeframe = "1M",
 }: CurrencyChartProps) {
   const isDarkMode = true;
-  const [activeTimeframe, setActiveTimeframe] = useState(defaultTimeframe);
   const [mounted, setMounted] = useState(false);
 
-  // Get all available currencies from the data
   const availableCurrencies = useMemo(() => {
     const firstDate = Object.keys(data)[0];
     if (!firstDate) return [];
     return data[firstDate]?.currencies.map((c) => c.symbol) || [];
   }, [data]);
 
-  // Set visible currencies with defaults or all if none provided
   const [visibleCurrencies, setVisibleCurrencies] =
     useState<string[]>(availableCurrencies);
 
-  // Replace the entire processedData useMemo with this updated version:
   const processedData = useMemo(() => {
     return Object.entries(data)
       .map(([date, dayData]) => {
-        // Create an object with date
         const result: Record<string, any> = { date };
 
-        // Add each currency's price directly as a property
         dayData.currencies.forEach((currency) => {
           result[currency.symbol] = currency.price;
-          // Store the full currency data for tooltip access
           result[`${currency.symbol}_data`] = {
             price: currency.price,
             change_1d: currency.change_1d,
             change_7d: currency.change_7d,
+            change_1m: currency.change_1m,
+            change_3m: currency.change_3m,
+            change_1y: currency.change_1y,
+            volume: currency.volume,
           };
         });
 

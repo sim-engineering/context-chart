@@ -1,8 +1,7 @@
-// pages/share/[shortUrl].tsx
-
+"use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { supabase } from "../../lib/supabase"; // Adjust this based on your project structure
+import { supabase } from "../../lib/supabase";
 
 const ShortUrlRedirect = () => {
   const [loading, setLoading] = useState(true);
@@ -12,7 +11,7 @@ const ShortUrlRedirect = () => {
 
   useEffect(() => {
     const fetchLongUrl = async () => {
-      if (!shortUrl) return; // Skip if no shortUrl is available in the query
+      if (!shortUrl) return;
 
       try {
         const query = supabase
@@ -30,7 +29,6 @@ const ShortUrlRedirect = () => {
         }
 
         if (data) {
-          // Redirect to the long URL
           window.location.href = data.long_url;
         } else {
           setError("Short URL not found");
@@ -46,7 +44,6 @@ const ShortUrlRedirect = () => {
     fetchLongUrl();
   }, [shortUrl]);
 
-  // Handle loading and error states
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -55,7 +52,7 @@ const ShortUrlRedirect = () => {
     return <div>{error}</div>;
   }
 
-  return null; // No UI is needed here, as the page is used for redirection
+  return null;
 };
 
 export default ShortUrlRedirect;
