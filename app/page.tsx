@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { format, subDays, isAfter, isValid, parseISO } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,6 +11,8 @@ import CurrencyChart from "@/components/currency-chart";
 import { DateRangePicker } from "@/components/date-range-picker";
 import Footer from "@/components/footer";
 import Header from "@/components/header";
+import AssetHeatmap from "@/components/map";
+import ShortenUrl from "@/components/shorten-url";
 
 const formatDate = (date: Date): string => {
   return date.toISOString().split("T")[0]; // Extract YYYY-MM-DD
@@ -323,11 +324,11 @@ export default function Home() {
         {availableCurrencies.map((ticker) => (
           <button
             key={ticker}
-            className={`px-4 py-2 rounded-lg transition-all shadow-md text-white font-medium ${
+            className={`px-3 py-1.5 text-sm rounded-full transition-all transform duration-200 ease-in-out shadow-md text-white font-medium ${
               selectedCurrencies.includes(ticker)
-                ? "bg-blue-600 hover:bg-blue-700"
-                : "bg-gray-500 hover:bg-gray-600"
-            }`}
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                : "bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            } hover:scale-105 active:scale-95`}
             onClick={() => toggleSelection(ticker)}
           >
             {ticker}
@@ -344,11 +345,11 @@ export default function Home() {
         {availableCrypto.map((ticker) => (
           <button
             key={ticker}
-            className={`px-4 py-2 rounded-lg transition-all shadow-md text-white font-medium ${
+            className={`px-3 py-1.5 text-sm rounded-full transition-all transform duration-200 ease-in-out shadow-md text-white font-medium ${
               selectedCrypto.includes(ticker)
-                ? "bg-green-600 hover:bg-green-700"
-                : "bg-gray-500 hover:bg-gray-600"
-            }`}
+                ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+                : "bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
+            } hover:scale-105 active:scale-95`}
             onClick={() => toggleSelection(ticker, true)}
           >
             {ticker}
@@ -383,25 +384,40 @@ export default function Home() {
               onDateFromChange={setDateFrom}
               onDateToChange={setDateTo}
             />
-            <div className="p-6 space-y-6">
+            <div className="p-2 space-y-6">
               <DateSlider
                 minDate={dateFrom}
                 maxDate={dateTo}
                 onDateChange={handleDateChange}
               />
-
-              <h2 className="text-xl font-bold">Stock Tickers</h2>
-              {stockButtons}
-
-              <h2 className="text-xl font-bold mt-4">Crypto Tickers</h2>
-              {cryptoButtons}
-
+              <div className="flex flex-col lg:flex-row">
+                <div className="w-full lg:w-1/2">
+                  <div className="flex flex-wrap gap-4">{stockButtons}</div>
+                </div>
+                <div className="w-full lg:w-1/2">
+                  <div className="flex flex-wrap gap-4">{cryptoButtons}</div>
+                </div>
+              </div>
+              {/* <ShortenUrl /> */}
               {Object.keys(mergedData).length > 0 ? (
-                <CurrencyChart
-                  data={mergedData}
-                  newsEvents={[]}
-                  defaultCurrencies={allAvailableTickers}
-                />
+                <div className="flex flex-col lg:flex-row">
+                  <div className="w-full lg:w-1/2">
+                    <CurrencyChart
+                      data={mergedData}
+                      newsEvents={[]}
+                      defaultCurrencies={allAvailableTickers}
+                    />
+                  </div>
+                  <div className="w-full lg:w-1/2">
+                    <AssetHeatmap
+                      onAssetClick={() => {}} // Asset click handler
+                      initialDate={selectedDate} // Pass the current date
+                      changeDays="1d" // The change period (e.g., 1 day)
+                      assetType="crypto" // Set asset type (e.g., crypto or stocks)
+                      data={mergedData} // Pass the data for multiple days
+                    />
+                  </div>
+                </div>
               ) : (
                 <div className="text-center p-8 text-gray-400">
                   No data available. Please select at least one ticker.

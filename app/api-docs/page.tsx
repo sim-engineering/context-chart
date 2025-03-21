@@ -30,7 +30,7 @@ export default function ApiDocs() {
   }, []);
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="mx-auto py-8">
       <h1 className="text-2xl font-bold mb-6">
         ContextCharts API Documentation
       </h1>

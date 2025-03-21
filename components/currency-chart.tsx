@@ -270,7 +270,7 @@ export default function CurrencyChart({
   return (
     <Card className="w-full border-0 bg-slate-950 text-slate-200 shadow-xl shadow-slate-900/20">
       <CardContent>
-        <div className="h-[450px] relative">
+        <div className="h-[350px] relative">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={processedData}
