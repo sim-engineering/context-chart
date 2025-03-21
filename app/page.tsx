@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { format, subDays, isAfter, isValid, parseISO } from "date-fns";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -19,20 +19,19 @@ const formatDate = (date: Date): string => {
 
 export default function Home() {
   const router = useRouter();
-
   const searchParams = useSearchParams();
 
-  const today = new Date();
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(today.getDate() - 7);
+  const today = useMemo(() => new Date(), []);
+  const sevenDaysAgo = useMemo(() => subDays(today, 7), [today]);
 
   const [loading, setLoading] = useState(true);
-
-  const [availableCurrencies, setAvailableCurrencies] = useState([]);
-  const [availableCrypto, setAvailableCrypto] = useState([]);
+  const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
+  const [availableCrypto, setAvailableCrypto] = useState<string[]>([]);
   const [selectedCrypto, setSelectedCrypto] = useState<string[]>([]);
   const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>([]);
-  const [mergedData, setMergedData] = useState([]);
+  const [mergedData, setMergedData] = useState<
+    Record<string, { currencies: Asset[] }>
+  >({});
 
   const [dateFrom, setDateFrom] = useState<string>(
     searchParams.get("dateFrom") || formatDate(sevenDaysAgo)
@@ -42,6 +41,86 @@ export default function Home() {
   );
   const [selectedDate, setSelectedDate] = useState(formatDate(today));
 
+  // Track URL updates separately to avoid render-time updates
+  const [pendingUrlUpdate, setPendingUrlUpdate] = useState<Record<
+    string,
+    string | null
+  > | null>(null);
+
+  // Memoized formatted dates to avoid repeated calculations
+  const formattedToday = useMemo(() => format(today, "yyyy-MM-dd"), [today]);
+  const formattedSevenDaysAgo = useMemo(
+    () => format(sevenDaysAgo, "yyyy-MM-dd"),
+    [sevenDaysAgo]
+  );
+
+  const isValidDate = useCallback((dateStr: string) => {
+    if (!dateStr) return false;
+    const parsedDate = parseISO(dateStr);
+    return isValid(parsedDate);
+  }, []);
+
+  const isNotFutureDate = useCallback(
+    (dateStr: string) => {
+      if (!dateStr) return false;
+      const parsedDate = parseISO(dateStr);
+      return !isAfter(parsedDate, today);
+    },
+    [today]
+  );
+
+  // This function now queues URL updates instead of performing them directly
+  const queueUrlUpdate = useCallback(
+    (params: Record<string, string | null>) => {
+      setPendingUrlUpdate(params);
+    },
+    []
+  );
+
+  // Process URL updates in a separate effect to avoid render-time router updates
+  useEffect(() => {
+    if (pendingUrlUpdate === null) return;
+
+    const newParams = new URLSearchParams(searchParams.toString());
+
+    Object.entries(pendingUrlUpdate).forEach(([key, value]) => {
+      if (value === null) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, value);
+      }
+    });
+
+    const urlWithCommas = `?${newParams.toString().replace(/%2C/g, ",")}`;
+    router.push(urlWithCommas, { scroll: false });
+
+    // Clear the pending update after processing
+    setPendingUrlUpdate(null);
+  }, [pendingUrlUpdate, router, searchParams]);
+
+  // Fetch tickers data only once on component mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [stocksResponse, cryptoResponse] = await Promise.all([
+          fetch("/api/tickers/stocks"),
+          fetch("/api/tickers/crypto"),
+        ]);
+
+        const stocksData = await stocksResponse.json();
+        const cryptoData = await cryptoResponse.json();
+
+        setAvailableCurrencies(stocksData.symbols || []);
+        setAvailableCrypto(cryptoData.symbols || []);
+      } catch (error) {
+        console.error("Error fetching available tickers:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Process URL parameters once tickers are loaded
   useEffect(() => {
     if (availableCurrencies.length === 0 && availableCrypto.length === 0)
       return;
@@ -61,174 +140,150 @@ export default function Home() {
       availableCrypto.includes(ticker)
     );
 
+    // Set default selections if none are valid from URL
+    const stocksToSet = validStocks.length > 0 ? validStocks : [];
+    const cryptoToSet = validCrypto.length > 0 ? validCrypto : [];
+
     const urlDateFrom = searchParams.get("dateFrom");
     const urlDateTo = searchParams.get("dateTo");
 
-    const today = format(new Date(), "yyyy-MM-dd");
-    const sevenDaysAgo = format(subDays(new Date(), 7), "yyyy-MM-dd");
-
-    const isValidDate = (dateStr: string) => {
-      const parsedDate = parseISO(dateStr);
-      return isValid(parsedDate);
-    };
-
-    const isNotFutureDate = (dateStr: string) => {
-      const parsedDate = parseISO(dateStr);
-      const todayDate = new Date();
-      return !isAfter(parsedDate, todayDate);
-    };
-
-    // Validate URL dates and set defaults if invalid
+    // Validate URL dates
     let validDateFrom =
       isValidDate(urlDateFrom) && isNotFutureDate(urlDateFrom)
         ? urlDateFrom
-        : null;
+        : formattedSevenDaysAgo;
+
     let validDateTo =
-      isValidDate(urlDateTo) && isNotFutureDate(urlDateTo) ? urlDateTo : null;
+      isValidDate(urlDateTo) && isNotFutureDate(urlDateTo)
+        ? urlDateTo
+        : formattedToday;
 
     // Ensure dateFrom is not later than dateTo
-    if (
-      validDateFrom &&
-      validDateTo &&
-      new Date(validDateFrom) > new Date(validDateTo)
-    ) {
-      validDateFrom = null;
-      validDateTo = null;
-    }
-
-    // Default to 7 days ago if dateFrom is invalid or in the future
-    if (validDateFrom && new Date(validDateFrom) > new Date(today)) {
-      validDateFrom = sevenDaysAgo;
-    }
-
-    // Default to today if dateTo is invalid or in the future
-    if (validDateTo && new Date(validDateTo) > new Date(today)) {
-      validDateTo = today;
-    }
-
-    // Ensure valid dateFrom and dateTo
-    if (!validDateFrom) validDateFrom = sevenDaysAgo;
-    if (!validDateTo) validDateTo = today;
-
-    // Ensure that dateFrom is not after dateTo
     if (new Date(validDateFrom) > new Date(validDateTo)) {
-      validDateFrom = validDateTo; // Correct dateFrom if it's later than dateTo
+      validDateFrom = formattedSevenDaysAgo;
+      validDateTo = formattedToday;
     }
 
-    setSelectedCurrencies(validStocks);
-    setSelectedCrypto(validCrypto);
+    setSelectedCurrencies(stocksToSet);
+    setSelectedCrypto(cryptoToSet);
     setDateFrom(validDateFrom);
     setDateTo(validDateTo);
 
-    // Update the URL with the corrected date parameters
-    if (validDateFrom !== urlDateFrom || validDateTo !== urlDateTo) {
-      updateUrl({
-        stock: validStocks.length > 0 ? validStocks.join(",") : null,
-        crypto: validCrypto.length > 0 ? validCrypto.join(",") : null,
+    // Update URL if parameters needed correction
+    if (
+      validDateFrom !== urlDateFrom ||
+      validDateTo !== urlDateTo ||
+      stocksToSet.join(",") !== urlStocks.join(",") ||
+      cryptoToSet.join(",") !== urlCrypto.join(",")
+    ) {
+      queueUrlUpdate({
+        stock: stocksToSet.length > 0 ? stocksToSet.join(",") : null,
+        crypto: cryptoToSet.length > 0 ? cryptoToSet.join(",") : null,
         dateFrom: validDateFrom,
         dateTo: validDateTo,
       });
     }
-  }, [availableCurrencies, availableCrypto, searchParams]);
+  }, [
+    availableCurrencies,
+    availableCrypto,
+    searchParams,
+    formattedToday,
+    formattedSevenDaysAgo,
+    isValidDate,
+    isNotFutureDate,
+    queueUrlUpdate,
+  ]);
 
-  const handleDateChange = (selectedDate: string) => {
-    setSelectedDate(selectedDate);
-  };
-
+  // Update URL when date range changes
   useEffect(() => {
-    const fetchUniqueStockTickers = async () => {
-      try {
-        const response = await fetch("/api/tickers/stocks");
-        const data = await response.json();
-        setAvailableCurrencies(data.symbols);
-        setSelectedCurrencies(data.symbols);
-      } catch (error) {
-        console.error("Error fetching available currencies:", error);
-      }
-    };
-
-    const fetchUniqueCryptoTickers = async () => {
-      try {
-        const response = await fetch("/api/tickers/crypto");
-        const data = await response.json();
-        setAvailableCrypto(data.symbols);
-        setSelectedCrypto(data.symbols);
-      } catch (error) {
-        console.error("Error fetching available crypto:", error);
-      }
-    };
-
-    fetchUniqueStockTickers();
-    fetchUniqueCryptoTickers();
-  }, []);
-
-  const updateUrl = (params: Record<string, string | null>) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === null) {
-        newParams.delete(key);
-      } else {
-        newParams.set(key, value);
-      }
-    });
-
-    const urlWithCommas = `?${newParams.toString().replace(/%2C/g, ",")}`;
-
-    router.push(urlWithCommas, { scroll: false });
-  };
-
-  useEffect(() => {
-    updateUrl({
+    queueUrlUpdate({
       dateFrom: dateFrom || null,
       dateTo: dateTo || null,
     });
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, queueUrlUpdate]);
 
-  const toggleSelection = (ticker: string, isCrypto = false) => {
-    if (isCrypto) {
-      const newCrypto = selectedCrypto.includes(ticker)
-        ? selectedCrypto.filter((item) => item !== ticker)
-        : [...selectedCrypto, ticker];
+  const handleDateChange = useCallback((selectedDate: string) => {
+    setSelectedDate(selectedDate);
+  }, []);
 
-      setSelectedCrypto(newCrypto);
-      updateUrl({ crypto: newCrypto.length > 0 ? newCrypto.join(",") : null });
-    } else {
-      const newStocks = selectedCurrencies.includes(ticker)
-        ? selectedCurrencies.filter((item) => item !== ticker)
-        : [...selectedCurrencies, ticker];
+  const toggleSelection = useCallback(
+    (ticker: string, isCrypto = false) => {
+      if (isCrypto) {
+        setSelectedCrypto((prev) => {
+          const newCrypto = prev.includes(ticker)
+            ? prev.filter((item) => item !== ticker)
+            : [...prev, ticker];
 
-      setSelectedCurrencies(newStocks);
-      updateUrl({ stock: newStocks.length > 0 ? newStocks.join(",") : null });
-    }
-  };
+          queueUrlUpdate({
+            crypto: newCrypto.length > 0 ? newCrypto.join(",") : null,
+          });
+          return newCrypto;
+        });
+      } else {
+        setSelectedCurrencies((prev) => {
+          const newStocks = prev.includes(ticker)
+            ? prev.filter((item) => item !== ticker)
+            : [...prev, ticker];
 
+          queueUrlUpdate({
+            stock: newStocks.length > 0 ? newStocks.join(",") : null,
+          });
+          return newStocks;
+        });
+      }
+    },
+    [queueUrlUpdate]
+  );
+
+  // Fetch price data when selection or date range changes
   useEffect(() => {
-    if (!selectedCrypto || !selectedCurrencies) return;
+    if (
+      (!selectedCrypto || selectedCrypto.length === 0) &&
+      (!selectedCurrencies || selectedCurrencies.length === 0)
+    ) {
+      setLoading(false);
+      setMergedData({});
+      return;
+    }
+
+    setLoading(true);
 
     const fetchData = async () => {
       try {
-        const [cryptoResponse, stocksResponse] = await Promise.all([
-          fetch(
-            `/api/prices/crypto?dateFrom=${dateFrom}&dateTo=${dateTo}&tickers=${selectedCrypto.join(
-              ","
-            )}`
-          ),
-          fetch(
-            `/api/prices/stocks?dateFrom=${dateFrom}&dateTo=${dateTo}&tickers=${selectedCurrencies.join(
-              ","
-            )}`
-          ),
-        ]);
+        const requests = [];
 
-        const cryptoData = await cryptoResponse.json();
-        const stocksData = await stocksResponse.json();
+        if (selectedCrypto.length > 0) {
+          requests.push(
+            fetch(
+              `/api/prices/crypto?dateFrom=${dateFrom}&dateTo=${dateTo}&tickers=${selectedCrypto.join(
+                ","
+              )}`
+            ).then((res) => res.json())
+          );
+        } else {
+          requests.push(Promise.resolve({}));
+        }
+
+        if (selectedCurrencies.length > 0) {
+          requests.push(
+            fetch(
+              `/api/prices/stocks?dateFrom=${dateFrom}&dateTo=${dateTo}&tickers=${selectedCurrencies.join(
+                ","
+              )}`
+            ).then((res) => res.json())
+          );
+        } else {
+          requests.push(Promise.resolve({}));
+        }
+
+        const [cryptoData, stocksData] = await Promise.all(requests);
 
         const allDates = new Set([
           ...Object.keys(cryptoData),
           ...Object.keys(stocksData),
         ]);
-        const combinedData: any = {};
+
+        const combinedData: Record<string, { currencies: Asset[] }> = {};
 
         allDates.forEach((date) => {
           const cryptoCurrencies = cryptoData[date]?.currencies || [];
@@ -245,13 +300,15 @@ export default function Home() {
             })),
           ];
 
-          combinedData[date] = { currencies: mergedCurrencies };
+          if (mergedCurrencies.length > 0) {
+            combinedData[date] = { currencies: mergedCurrencies };
+          }
         });
 
         setMergedData(combinedData);
-        setLoading(false);
       } catch (error) {
         console.error("Error fetching data: ", error);
+      } finally {
         setLoading(false);
       }
     };
@@ -259,14 +316,63 @@ export default function Home() {
     fetchData();
   }, [dateFrom, dateTo, selectedCrypto, selectedCurrencies]);
 
+  // Memoize selected ticker buttons to avoid unnecessary re-renders
+  const stockButtons = useMemo(
+    () => (
+      <div className="flex flex-wrap gap-2">
+        {availableCurrencies.map((ticker) => (
+          <button
+            key={ticker}
+            className={`px-4 py-2 rounded-lg transition-all shadow-md text-white font-medium ${
+              selectedCurrencies.includes(ticker)
+                ? "bg-blue-600 hover:bg-blue-700"
+                : "bg-gray-500 hover:bg-gray-600"
+            }`}
+            onClick={() => toggleSelection(ticker)}
+          >
+            {ticker}
+          </button>
+        ))}
+      </div>
+    ),
+    [availableCurrencies, selectedCurrencies, toggleSelection]
+  );
+
+  const cryptoButtons = useMemo(
+    () => (
+      <div className="flex flex-wrap gap-2">
+        {availableCrypto.map((ticker) => (
+          <button
+            key={ticker}
+            className={`px-4 py-2 rounded-lg transition-all shadow-md text-white font-medium ${
+              selectedCrypto.includes(ticker)
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-gray-500 hover:bg-gray-600"
+            }`}
+            onClick={() => toggleSelection(ticker, true)}
+          >
+            {ticker}
+          </button>
+        ))}
+      </div>
+    ),
+    [availableCrypto, selectedCrypto, toggleSelection]
+  );
+
+  // Combine available tickers for chart default props
+  const allAvailableTickers = useMemo(
+    () => [...availableCrypto, ...availableCurrencies],
+    [availableCrypto, availableCurrencies]
+  );
+
   return (
-    <div className="flex flex-col bg-background dark">
+    <div className="flex flex-col min-h-screen bg-background dark">
       <link rel="icon" href="/favicon.ico" sizes="any" />
 
       <Header />
-      <main className="flex-1 px-1 py-6 scale-[1] origin-top mx-auto">
+      <main className="flex-1 px-1 py-6 scale-[1] origin-top mx-auto w-full max-w-7xl">
         {loading ? (
-          <div>
+          <div className="flex justify-center items-center h-64">
             <Spinner />
           </div>
         ) : (
@@ -285,44 +391,22 @@ export default function Home() {
               />
 
               <h2 className="text-xl font-bold">Stock Tickers</h2>
-              <div className="flex flex-wrap gap-2">
-                {availableCurrencies.map((ticker) => (
-                  <button
-                    key={ticker}
-                    className={`px-4 py-2 rounded-lg transition-all shadow-md text-white font-medium ${
-                      selectedCurrencies.includes(ticker)
-                        ? "bg-blue-600 hover:bg-blue-700"
-                        : "bg-gray-500 hover:bg-gray-600"
-                    }`}
-                    onClick={() => toggleSelection(ticker)}
-                  >
-                    {ticker}
-                  </button>
-                ))}
-              </div>
+              {stockButtons}
 
               <h2 className="text-xl font-bold mt-4">Crypto Tickers</h2>
-              <div className="flex flex-wrap gap-2">
-                {availableCrypto.map((ticker) => (
-                  <button
-                    key={ticker}
-                    className={`px-4 py-2 rounded-lg transition-all shadow-md text-white font-medium ${
-                      selectedCrypto.includes(ticker)
-                        ? "bg-green-600 hover:bg-green-700"
-                        : "bg-gray-500 hover:bg-gray-600"
-                    }`}
-                    onClick={() => toggleSelection(ticker, true)}
-                  >
-                    {ticker}
-                  </button>
-                ))}
-              </div>
+              {cryptoButtons}
 
-              <CurrencyChart
-                data={mergedData}
-                newsEvents={[]}
-                defaultCurrencies={availableCrypto.concat(availableCurrencies)}
-              />
+              {Object.keys(mergedData).length > 0 ? (
+                <CurrencyChart
+                  data={mergedData}
+                  newsEvents={[]}
+                  defaultCurrencies={allAvailableTickers}
+                />
+              ) : (
+                <div className="text-center p-8 text-gray-400">
+                  No data available. Please select at least one ticker.
+                </div>
+              )}
             </div>
           </Card>
         )}
